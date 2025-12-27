@@ -677,7 +677,7 @@ function terminalApp() {
         async toggleConnection() {
             if (this.connected) {
                 await this.disconnect();
-                this.activeView = 'settings'; // Open settings view to connect
+                this.activeView = 'connection'; // Open connection view to connect
             }
         },
 
