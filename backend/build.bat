@@ -16,7 +16,7 @@ if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
 REM Build the executable
-pyinstaller zdm.spec
+pyinstaller zdm_gui.spec
 
 echo.
 echo Build complete! Executable is in dist\zdm.exe
