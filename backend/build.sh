@@ -15,7 +15,7 @@ pip install pyinstaller
 rm -rf build dist
 
 # Build the executable
-pyinstaller zdm.spec
+pyinstaller zdm_gui.spec
 
 echo ""
 echo "Build complete! Executable is in dist/zdm"
