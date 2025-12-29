@@ -19,9 +19,17 @@ function terminalApp() {
         currentPort: '',
         activeView: 'commands', // VSCode-style sidebar view
         sidebarWidth: 320,
-        activeView: 'commands', // VSCode-style sidebar view
-        sidebarWidth: 320,
         isResizing: false,
+
+        // Sidebar Icon State
+        sidebarIcons: [
+            { id: 'commands', title: 'Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>' },
+            { id: 'connection', title: 'Connection', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a1 1 0 0 1-1-1v-1a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 15V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V9" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21v-2h-4" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 5a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4z" /></svg>' },
+            { id: 'repeat', title: 'Repeat Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' },
+            { id: 'settings', title: 'Project Settings', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' },
+        ],
+        draggedIconId: null,
+        dragOverIconId: null,
 
         // Toolbar State
         activeMenu: null,
@@ -112,6 +120,17 @@ function terminalApp() {
             const savedView = localStorage.getItem('zdm_active_view');
             if (savedView) {
                 this.activeView = savedView;
+            }
+
+            // Load sidebar icon order
+            const savedIconOrder = localStorage.getItem('zdm_icon_order');
+            if (savedIconOrder) {
+                try {
+                    const order = JSON.parse(savedIconOrder);
+                    this.sidebarIcons.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+                } catch (e) {
+                    console.error("Error parsing icon order", e);
+                }
             }
 
             // Watch for view changes to save
@@ -522,6 +541,7 @@ function terminalApp() {
         // ============ SIDEBAR RESIZING ============
 
         startResizing(e) {
+            e.preventDefault();
             this.isResizing = true;
             document.body.style.cursor = 'ew-resize';
             document.body.style.userSelect = 'none'; // Prevent text selection
@@ -781,8 +801,13 @@ function terminalApp() {
         },
 
         // Drag & Drop Handlers
-        handleDragStart(sessionId) {
+        handleDragStart(event, sessionId) {
+            console.log('handleDragStart', sessionId);
             this.draggedSessionId = sessionId;
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', sessionId);
+            }
             document.body.classList.add('dragging');
         },
 
@@ -790,7 +815,41 @@ function terminalApp() {
             this.draggedSessionId = null;
             this.dragOverGroupId = null;
             this.dragOverPosition = null;
+            this.draggedIconId = null;
+            this.dragOverIconId = null;
             document.body.classList.remove('dragging');
+            document.body.classList.remove('dragging-icon');
+        },
+
+        handleIconDragStart(event, iconId) {
+            this.draggedIconId = iconId;
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', iconId);
+            }
+            document.body.classList.add('dragging-icon');
+        },
+
+        handleIconDragOver(event, iconId) {
+            event.preventDefault();
+            this.dragOverIconId = iconId;
+        },
+
+        handleIconDrop(event, targetIconId) {
+            event.preventDefault();
+            const sourceIconId = this.draggedIconId;
+            if (!sourceIconId || sourceIconId === targetIconId) return;
+
+            const fromIdx = this.sidebarIcons.findIndex(i => i.id === sourceIconId);
+            const toIdx = this.sidebarIcons.findIndex(i => i.id === targetIconId);
+
+            if (fromIdx !== -1 && toIdx !== -1) {
+                const [movedIcon] = this.sidebarIcons.splice(fromIdx, 1);
+                this.sidebarIcons.splice(toIdx, 0, movedIcon);
+                localStorage.setItem('zdm_icon_order', JSON.stringify(this.sidebarIcons.map(i => i.id)));
+            }
+
+            this.handleDragEnd();
         },
 
         handleDragOver(event, groupId, position = 'center') {
