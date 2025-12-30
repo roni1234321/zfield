@@ -3,6 +3,7 @@ function terminalApp() {
     return {
         // State
         connected: false,
+        showAbout: false,
         showSettings: false,
         selectedPort: '',
         manualPort: '',  // Add this line
@@ -20,6 +21,7 @@ function terminalApp() {
         activeView: 'commands', // VSCode-style sidebar view
         sidebarWidth: 320,
         isResizing: false,
+        appVersion: { version: '0.0.0', full_version: 'v0.0.0' },
 
         // Sidebar Icon State
         sidebarIcons: [
@@ -44,25 +46,34 @@ function terminalApp() {
         dragOverGroupId: null,
         dragOverPosition: null, // 'top', 'bottom', 'left', 'right', 'center'
 
-        // Command Discovery State
+        // Command Discovery & Management State
         showCommands: false,
         commands: [],
         loadingCommands: false,
         commandsCache: null,
         lastScannedTime: null,
         commandDiscoveryInProgress: false,
-        discoveryLock: false, // Concurrency control lock
+        discoveryLock: false,
         discoveryCollectedData: '',
         selectedCommand: null,
         commandArgs: {},
         commandResult: '',
-        expandedCommands: {}, // Track which commands are expanded to show subcommands
-        discoveringSubcommands: {}, // Track which commands are currently discovering subcommands
-        discoveryProgress: { current: 0, total: 0 }, // Track overall discovery progress
-        discoveryStartTime: null, // Track when the scan started
-        showDiscoveryConfirm: false, // Show confirmation dialog for long scans
-        discoveryPaused: false, // Pause scanning for user confirmation
-        discoveryCancelRequested: false, // Allow user to cancel
+        expandedCommands: {},
+        discoveringSubcommands: {},
+        discoveryProgress: { current: 0, total: 0 },
+        discoveryStartTime: null,
+        showDiscoveryConfirm: false,
+        discoveryPaused: false,
+        discoveryCancelRequested: false,
+
+        // Modal State (Unified for Scanned & Custom)
+        showCustomCommandModal: false,
+        customCommandModalData: {
+            id: null,
+            name: '',
+            description: '',
+            args: []
+        },
 
         // WebSocket and Terminal
         ws: null,
@@ -116,6 +127,9 @@ function terminalApp() {
                 this.sidebarWidth = parseInt(savedWidth);
             }
 
+            // Load commands (merges cached and custom)
+            this.loadAllCommands();
+
             // Load saved view
             const savedView = localStorage.getItem('zdm_active_view');
             if (savedView) {
@@ -137,6 +151,9 @@ function terminalApp() {
             this.$watch('activeView', (value) => {
                 localStorage.setItem('zdm_active_view', value);
             });
+
+            // Load app version
+            await this.loadVersion();
 
             // Handle window resize for all terminals
             window.addEventListener('resize', () => {
@@ -567,6 +584,17 @@ function terminalApp() {
             this.resizeTerminal();
         },
 
+        // Load app version
+        async loadVersion() {
+            try {
+                const response = await fetch('/api/version');
+                const data = await response.json();
+                this.appVersion = data;
+            } catch (error) {
+                console.error('Error loading version:', error);
+            }
+        },
+
         // Load available serial ports
         async loadPorts() {
             this.loadingPorts = true;
@@ -798,6 +826,130 @@ function terminalApp() {
                 if (this.activeSessionId) this.switchSession(this.activeSessionId);
             }
             this.saveSessionState();
+        },
+
+        // ============ CUSTOM COMMANDS ============
+
+        loadAllCommands() {
+            // Priority 1: Main cache (contains scanned + edited scanned + custom)
+            const cached = localStorage.getItem('zephyr_commands_cache');
+            if (cached) {
+                try {
+                    const data = JSON.parse(cached);
+                    this.commandsCache = data;
+                    this.commands = data.commands || [];
+                    this.lastScannedTime = data.lastScanned;
+                } catch (e) {
+                    console.error('Error loading command cache:', e);
+                }
+            }
+
+            // Legacy Support: Load from custom commands key if exists and merge
+            const savedCustom = localStorage.getItem('zdm_custom_commands');
+            if (savedCustom) {
+                try {
+                    const legacyCustom = JSON.parse(savedCustom);
+                    legacyCustom.forEach(lc => {
+                        const exists = this.commands.find(c => c.id === lc.id || c.name === lc.name);
+                        if (!exists) {
+                            lc.isCustom = true;
+                            this.commands.push(lc);
+                        }
+                    });
+                    // Clean up legacy key after migration
+                    // localStorage.removeItem('zdm_custom_commands'); 
+                    this.saveCachedCommands(this.commands);
+                } catch (e) {
+                    console.error('Error migrating legacy custom commands:', e);
+                }
+            }
+        },
+
+        saveCustomCommands() {
+            // This is now just a wrapper for saveCachedCommands since they are unified
+            this.saveCachedCommands(this.commands);
+        },
+
+        openCustomCommandModal(command = null) {
+            if (command) {
+                // Determine if it's a scanned command being edited for the first time
+                this.customCommandModalData = {
+                    id: command.id,
+                    name: command.name,
+                    description: command.description || '',
+                    args: JSON.parse(JSON.stringify(command.args || []))
+                };
+            } else {
+                this.customCommandModalData = {
+                    id: null,
+                    name: '',
+                    description: '',
+                    args: []
+                };
+            }
+            this.showCustomCommandModal = true;
+        },
+
+        closeCustomCommandModal() {
+            this.showCustomCommandModal = false;
+        },
+
+        addCustomCommandArg() {
+            const id = 'arg_' + Math.random().toString(36).substr(2, 5);
+            this.customCommandModalData.args.push({
+                id: id,
+                name: '',
+                required: false
+            });
+        },
+
+        removeCustomCommandArg(index) {
+            this.customCommandModalData.args.splice(index, 1);
+        },
+
+        saveCustomCommand() {
+            if (!this.customCommandModalData.name) {
+                this.showStatus('Command name is required', 'error');
+                return;
+            }
+
+            const modalData = this.customCommandModalData;
+            const existingIdx = this.commands.findIndex(c => c.id === modalData.id);
+
+            if (existingIdx !== -1) {
+                // Update existing
+                const existing = this.commands[existingIdx];
+                existing.name = modalData.name;
+                existing.description = modalData.description;
+                existing.args = JSON.parse(JSON.stringify(modalData.args));
+                existing.userModified = true;
+            } else {
+                // Create new
+                const newCmd = {
+                    id: 'custom_' + Date.now(),
+                    name: modalData.name,
+                    description: modalData.description,
+                    args: JSON.parse(JSON.stringify(modalData.args)),
+                    isCustom: true,
+                    userModified: true
+                };
+                this.commands.push(newCmd);
+            }
+
+            this.saveCachedCommands(this.commands);
+            this.showCustomCommandModal = false;
+            this.showStatus('Command saved', 'success');
+        },
+
+        deleteCustomCommand(id) {
+            if (confirm('Are you sure you want to delete this command?')) {
+                this.commands = this.commands.filter(c => c.id !== id);
+                this.saveCachedCommands(this.commands);
+                this.showStatus('Command deleted', 'success');
+                if (this.selectedCommand && this.selectedCommand.id === id) {
+                    this.selectedCommand = null;
+                }
+            }
         },
 
         // Drag & Drop Handlers
@@ -1425,12 +1577,48 @@ function terminalApp() {
                 lastScanned: new Date().toISOString(),
                 version: '2.0' // Updated version to support hierarchical structure
             };
-            localStorage.setItem('zephyr_commands_cache', JSON.stringify(cache));
+
+            // Use a replacer function to avoid circular references like parentCmd
+            const json = JSON.stringify(cache, (key, value) => {
+                if (key === 'parentCmd') return undefined;
+                return value;
+            });
+
+            localStorage.setItem('zephyr_commands_cache', json);
             this.commandsCache = cache;
             this.commands = commands;
             this.lastScannedTime = cache.lastScanned;
 
             console.log(`Saved ${commands.length} commands to cache`);
+        },
+
+        mergeDiscoveredCommands(newCommands) {
+            newCommands.forEach(newCmd => {
+                // Determine if it exists (match by id or name)
+                const existingIdx = this.commands.findIndex(c => c.id === newCmd.id || c.name === newCmd.name);
+
+                if (existingIdx !== -1) {
+                    const existing = this.commands[existingIdx];
+                    if (existing.userModified) {
+                        // Keep modified values but sync internal structure if needed
+                        // (e.g. keep subcommands reference so we can update it later)
+                        // existing.subcommands remains
+                    } else {
+                        // Just update everything except UI state like expansion
+                        const expanded = existing.expanded;
+                        const subcommands = existing.subcommands;
+                        this.commands[existingIdx] = { ...newCmd, expanded, subcommands };
+                    }
+                } else {
+                    // New command found
+                    this.commands.push({
+                        ...newCmd,
+                        expanded: false,
+                        subcommands: null
+                    });
+                }
+            });
+            this.saveCachedCommands(this.commands);
         },
 
         // Scan and discover commands
@@ -1510,6 +1698,9 @@ function terminalApp() {
                 if (this.discoveryCancelRequested) break;
 
                 const cmd = this.commands[i];
+                // Skip discovery for custom commands created manually by the user
+                if (cmd.isCustom) continue;
+
                 await this.discoverDeep(cmd);
             }
 
@@ -1595,7 +1786,7 @@ function terminalApp() {
 
         // Safe helper to get direct subcommands for the UI
         getDirectSubcommands(command) {
-            if (!command) return [];
+            if (!command || command.isCustom) return [];
 
             // Find top-level parent to look in its flattened subcommands list
             let topLevel = command;
@@ -1605,6 +1796,20 @@ function terminalApp() {
 
             const parentFullName = (command.fullName || command.name).trim();
             return (topLevel.subcommands || []).filter(s => s.parent === parentFullName);
+        },
+
+        getCommandUsage(command) {
+            if (!command) return '';
+            if (command.usage) return command.usage;
+
+            // Build usage for custom commands
+            let usage = command.name;
+            if (command.args && command.args.length > 0) {
+                command.args.forEach(arg => {
+                    usage += arg.required ? ` <${arg.name}>` : ` [${arg.name}]`;
+                });
+            }
+            return usage;
         },
 
         // Internal subcommand discovery (returns found subcommands)
@@ -1657,12 +1862,13 @@ function terminalApp() {
             // Use fullName for subcommands (e.g., "log backend"), otherwise use name
             let cmdString = command.fullName || command.name;
 
-            if (this.commandArgs && Object.keys(this.commandArgs).length > 0) {
-                for (const [argId, argValue] of Object.entries(this.commandArgs)) {
-                    if (argValue && argValue.trim()) {
-                        cmdString += ' ' + argValue.trim();
+            if (command.args && command.args.length > 0) {
+                command.args.forEach(arg => {
+                    const val = this.commandArgs[arg.id];
+                    if (val && val.trim()) {
+                        cmdString += ' ' + val.trim();
                     }
-                }
+                });
             }
 
             console.log('Executing command:', cmdString);
@@ -1727,8 +1933,7 @@ function terminalApp() {
                         if (parsed.length > 0) {
                             // Successfully got command list
                             resolved = true;
-                            this.commands = parsed;
-                            this.saveCachedCommands(parsed);
+                            this.mergeDiscoveredCommands(parsed);
                             this.commandDiscoveryInProgress = false;
                             console.log('✓ Discovery successful with', parsed.length, 'commands');
                             resolve();
@@ -1743,8 +1948,7 @@ function terminalApp() {
                             const parsed = this.parseHelpOutput(this.discoveryCollectedData);
                             if (parsed.length > 0) {
                                 resolved = true;
-                                this.commands = parsed;
-                                this.saveCachedCommands(parsed);
+                                this.mergeDiscoveredCommands(parsed);
                                 this.commandDiscoveryInProgress = false;
                                 console.log('✓ Discovery successful (prompt detected) with', parsed.length, 'commands');
                                 resolve();
@@ -1761,8 +1965,7 @@ function terminalApp() {
                             const parsed = this.parseHelpOutput(this.discoveryCollectedData);
                             if (parsed.length > 0) {
                                 resolved = true;
-                                this.commands = parsed;
-                                this.saveCachedCommands(parsed);
+                                this.mergeDiscoveredCommands(parsed);
                                 console.log('✓ Discovery successful (data stable) with', parsed.length, 'commands');
                                 resolve();
                                 return;
@@ -1872,11 +2075,24 @@ function terminalApp() {
                 console.log(`Discovery complete.Collected ${this.discoveryCollectedData.length} chars`);
 
                 // Parse subcommands from help output
-                const subcommands = this.parseSubcommands(this.discoveryCollectedData, command.name);
+                const newSubcommands = this.parseSubcommands(this.discoveryCollectedData, command.name);
 
-                if (subcommands.length > 0) {
-                    // Update command with subcommands
-                    command.subcommands = subcommands;
+                if (newSubcommands.length > 0) {
+                    // Update command with subcommands (Merge logic)
+                    if (!command.subcommands) command.subcommands = [];
+
+                    newSubcommands.forEach(ns => {
+                        const existingIdx = command.subcommands.findIndex(s => s.name === ns.name);
+                        if (existingIdx !== -1) {
+                            const existing = command.subcommands[existingIdx];
+                            if (!existing.userModified) {
+                                command.subcommands[existingIdx] = { ...ns, expanded: existing.expanded };
+                            }
+                        } else {
+                            command.subcommands.push(ns);
+                        }
+                    });
+
                     command.hasSubcommands = true;
 
                     // Update in commands array
@@ -1888,7 +2104,7 @@ function terminalApp() {
                     // Save updated cache
                     this.saveCachedCommands(this.commands);
 
-                    this.showStatus(`Found ${subcommands.length} subcommands for ${command.name}`, 'success');
+                    this.showStatus(`Synced ${newSubcommands.length} subcommands for ${command.name}`, 'success');
                 } else {
                     command.hasSubcommands = false;
                     this.showStatus(`No subcommands found for ${command.name}`, 'info');

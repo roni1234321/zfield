@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from app.services.connection_manager import ConnectionManager
 from app.backends.serial_backend import SerialBackend
+from app.version import get_version_info
 
 router = APIRouter()
 connection_manager = ConnectionManager()
@@ -64,6 +65,12 @@ async def get_status():
         "sessions": active_sessions,
         "any_connected": len(active_sessions) > 0
     }
+
+
+@router.get("/version")
+async def get_version():
+    """Get application version information."""
+    return get_version_info()
 
 
 # Export connection_manager for WebSocket handler

@@ -9,7 +9,9 @@ import sys
 from app.api import routes
 from app.api.websocket import websocket_endpoint
 
-app = FastAPI(title="Zephyr Device Manager", version="0.1.0")
+from app.version import VERSION
+
+app = FastAPI(title="Zephyr Device Manager", version=VERSION)
 
 # Include API routes
 app.include_router(routes.router, prefix="/api")
