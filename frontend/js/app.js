@@ -29,6 +29,7 @@ function terminalApp() {
             { id: 'connection', title: 'Connection', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a1 1 0 0 1-1-1v-1a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 15V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V9" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21v-2h-4" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 5a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4z" /></svg>' },
             { id: 'repeat', title: 'Repeat Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' },
             { id: 'settings', title: 'Project Settings', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' },
+            { id: 'counters', title: 'Counters', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" id="mdi-counter" viewBox="0 0 24 24" fill="currentColor"><path d="M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H11V6H4M20,18V6H18.76C19,6.54 18.95,7.07 18.95,7.13C18.88,7.8 18.41,8.5 18.24,8.75L15.91,11.3L19.23,11.28L19.24,12.5L14.04,12.47L14,11.47C14,11.47 17.05,8.24 17.2,7.95C17.34,7.67 17.91,6 16.5,6C15.27,6.05 15.41,7.3 15.41,7.3L13.87,7.31C13.87,7.31 13.88,6.65 14.25,6H13V18H15.58L15.57,17.14L16.54,17.13C16.54,17.13 17.45,16.97 17.46,16.08C17.5,15.08 16.65,15.08 16.5,15.08C16.37,15.08 15.43,15.13 15.43,15.95H13.91C13.91,15.95 13.95,13.89 16.5,13.89C19.1,13.89 18.96,15.91 18.96,15.91C18.96,15.91 19,17.16 17.85,17.63L18.37,18H20M8.92,16H7.42V10.2L5.62,10.76V9.53L8.76,8.41H8.92V16Z" /></svg>' },
         ],
         draggedIconId: null,
         dragOverIconId: null,
@@ -89,6 +90,12 @@ function terminalApp() {
             interval: 1.0
         },
 
+        // Counter Feature State
+        counters: [],
+        showCounters: true,
+        counterPanelHeight: 'normal', // 'normal' or 'large'
+        lastCounterUpdate: {}, // Store session-specific last chunks for split-text matching
+
         // Initialize application (Now handles status checks/port loading)
         async init() {
             if (this._initialized) return;
@@ -129,6 +136,9 @@ function terminalApp() {
 
             // Load commands (merges cached and custom)
             this.loadAllCommands();
+
+            // Load counters
+            this.loadCounters();
 
             // Load saved view
             const savedView = localStorage.getItem('zdm_active_view');
@@ -186,6 +196,105 @@ function terminalApp() {
                 id, name, command, interval
             }));
             localStorage.setItem('zdm_repeat_commands', JSON.stringify(toSave));
+        },
+
+        // ============ COUNTER METHODS ============
+
+        loadCounters() {
+            const saved = localStorage.getItem('zdm_counters');
+            if (saved) {
+                try {
+                    this.counters = JSON.parse(saved).map(c => ({
+                        ...c,
+                        buffer: '',
+                        justUpdated: false
+                    }));
+                } catch (e) {
+                    console.error('Error loading counters:', e);
+                }
+            }
+        },
+
+        saveCounters() {
+            const toSave = this.counters.map(({ id, text, sessionId, count }) => ({
+                id, text, sessionId, count
+            }));
+            localStorage.setItem('zdm_counters', JSON.stringify(toSave));
+        },
+
+        addCounter() {
+            const newCounter = {
+                id: 'cnt_' + Date.now(),
+                text: '',
+                sessionId: 'all',
+                count: 0,
+                buffer: '',
+                justUpdated: false
+            };
+            this.counters.push(newCounter);
+            this.saveCounters();
+        },
+
+        deleteCounter(id) {
+            this.counters = this.counters.filter(c => c.id !== id);
+            this.saveCounters();
+        },
+
+        resetCounter(id) {
+            const counter = this.counters.find(c => c.id === id);
+            if (counter) {
+                counter.count = 0;
+                this.saveCounters();
+            }
+        },
+
+        resetAllCounters() {
+            if (this.counters.length === 0) return;
+            if (confirm('Reset all counter values to zero?')) {
+                this.counters.forEach(c => c.count = 0);
+                this.saveCounters();
+                this.showStatus('All counters reset', 'success');
+            }
+        },
+
+        updateCounters(sessionId, rawData) {
+            if (this.counters.length === 0) return;
+
+            // Clean ANSI for counting
+            const cleanData = rawData.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[0-9]*C/g, '');
+
+            this.counters.forEach(counter => {
+                if (counter.sessionId !== 'all' && counter.sessionId !== sessionId) return;
+                if (!counter.text || counter.text.trim().length === 0) return;
+
+                // Handle split chunks by keeping a small overlap buffer
+                const search = counter.text;
+                // Use a different key for each session+counter combo to avoid cross-pollution
+                const bufferKey = sessionId + '_' + counter.id;
+                const combined = (this.lastCounterUpdate[bufferKey] || '') + cleanData;
+
+                // Count occurrences
+                const parts = combined.split(search);
+                const occurrences = parts.length - 1;
+
+                if (occurrences > 0) {
+                    counter.count += occurrences;
+
+                    // Leading-edge debounce for highlight effect
+                    if (!counter.justUpdated) {
+                        counter.justUpdated = true;
+                        setTimeout(() => { counter.justUpdated = false; }, 1000);
+                    }
+                }
+
+                // Store tail for next update (length of search text - 1)
+                const tailLen = search.length - 1;
+                if (tailLen > 0) {
+                    this.lastCounterUpdate[bufferKey] = combined.slice(-tailLen);
+                } else {
+                    this.lastCounterUpdate[bufferKey] = '';
+                }
+            });
         },
 
         // Initialize terminal (returns term instance, doesn't attach yet if container not found)
@@ -380,7 +489,9 @@ function terminalApp() {
                 layoutGroups: this.layoutGroups,
                 data: {
                     savedCommands: this.savedCommands,
-                    repeatCommands: this.repeatCommands
+                    repeatCommands: this.repeatCommands,
+                    commands: this.commands,
+                    counters: this.counters
                 }
             };
 
@@ -453,6 +564,14 @@ function terminalApp() {
                 if (project.data) {
                     this.savedCommands = project.data.savedCommands || [];
                     this.repeatCommands = project.data.repeatCommands || [];
+                    if (project.data.commands) {
+                        this.commands = project.data.commands;
+                        this.saveCachedCommands(this.commands);
+                    }
+                    if (project.data.counters) {
+                        this.counters = project.data.counters;
+                        this.saveCounters();
+                    }
                 }
 
                 // Restore Sessions (Closed state)
@@ -1150,6 +1269,9 @@ function terminalApp() {
                 if (session.terminal) {
                     session.terminal.write(event.data);
                 }
+
+                // Update counters
+                this.updateCounters(session.id, event.data);
             };
 
             session.ws.onerror = (error) => {

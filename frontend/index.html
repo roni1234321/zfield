@@ -235,6 +235,10 @@
                         <button @click="activeView = 'repeat'; closeMenu()"
                             class="w-full text-left px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">Repeat
                             Commands</button>
+                        <button @click="showCounters = !showCounters; closeMenu()"
+                            class="w-full text-left px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">
+                            <span x-text="showCounters ? 'Hide Counters' : 'Show Counters'"></span>
+                        </button>
                     </div>
                 </div>
 
@@ -282,269 +286,240 @@
         <div class="flex-1 min-h-0 flex">
             <!-- VSCode-style Icon Tray -->
             <div
-                class="w-12 bg-gray-50 dark:bg-slate-800 flex flex-col items-center py-4 space-y-2 border-r border-gray-200 dark:border-slate-700 transition-colors duration-200">
-                <template x-for="icon in sidebarIcons" :key="icon.id">
-                    <button @click="activeView = activeView === icon.id ? null : icon.id" draggable="true"
-                        @dragstart="handleIconDragStart($event, icon.id)"
-                        @dragover="handleIconDragOver($event, icon.id)" @drop="handleIconDrop($event, icon.id)"
-                        @dragend="handleDragEnd"
-                        class="w-10 h-10 flex items-center justify-center rounded-lg transition-colors relative" :class="[
-                            activeView === icon.id ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700',
-                            dragOverIconId === icon.id ? 'border-2 border-indigo-500' : ''
-                        ]" :title="icon.title">
-                        <div x-html="icon.icon" class="flex items-center justify-center"></div>
-                        <div x-show="activeView === icon.id" class="absolute left-0 w-0.5 h-8 bg-indigo-500"></div>
-                    </button>
-                </template>
-            </div>
+                class="w-12 bg-gray-50 dark:bg-slate-800 flex flex-col items-center pt-4 border-r border-gray-200 dark:border-slate-700 transition-colors duration-200">
 
-            <!-- Sidebar Panel -->
-            <aside x-show="activeView !== null"
-                class="h-full bg-gray-50 dark:bg-slate-800 shadow-lg overflow-auto flex flex-col border-r border-gray-200 dark:border-slate-700 flex-shrink-0 relative transition-colors duration-200"
-                :style="'width: ' + sidebarWidth + 'px'" x-transition:enter="transform transition ease-out duration-200"
-                x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
-                x-transition:leave="transform transition ease-in duration-150" x-transition:leave-start="translate-x-0"
-                x-transition:leave-end="-translate-x-full">
-
-                <!-- Resize Handle (Gutter) -->
-                <div @mousedown="startResizing"
-                    class="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize hover:bg-indigo-500/50 transition-colors z-50">
+                <!-- Top Icons -->
+                <div class="flex-1 flex flex-col items-center space-y-2 w-full">
+                    <template x-for="icon in sidebarIcons.filter(i => i.id !== 'counters')" :key="icon.id">
+                        <button @click="activeView = activeView === icon.id ? null : icon.id" draggable="true"
+                            @dragstart="handleIconDragStart($event, icon.id)"
+                            @dragover="handleIconDragOver($event, icon.id)" @drop="handleIconDrop($event, icon.id)"
+                            @dragend="handleDragEnd"
+                            class="w-10 h-10 flex items-center justify-center rounded-lg transition-colors relative"
+                            :class="[
+                                activeView === icon.id ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700',
+                                dragOverIconId === icon.id ? 'border-2 border-indigo-500' : ''
+                            ]" :title="icon.title">
+                            <div x-html="icon.icon" class="flex items-center justify-center"></div>
+                            <div x-show="activeView === icon.id" class="absolute left-0 w-0.5 h-8 bg-indigo-500"></div>
+                        </button>
+                    </template>
                 </div>
 
-                <!-- Commands View -->
-                <div x-show="activeView === 'commands'" class="flex flex-col h-full">
+                <!-- Bottom Group (Bound to Counter Panel Height) -->
+                <div class="w-full flex flex-col items-center relative transition-all duration-300 shrink-0"
+                    :class="showCounters ? (counterPanelHeight === 'large' ? 'h-24' : 'h-16') : 'h-16'">
 
-                    <!-- Header -->
-                    <div class="p-4 border-b border-gray-200 dark:border-slate-700">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Commands</h2>
-                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Zephyr shell commands</p>
-                            </div>
-                            <button @click="openCustomCommandModal()"
-                                class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
-                                title="Add Custom Command">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 4v16m8-8H4"></path>
-                                </svg>
+                    <!-- Separator (Aligned exactly with Panel Top Border) -->
+                    <div class="absolute top-0 w-8 h-px bg-gray-200 dark:bg-slate-700"></div>
+
+                    <div class="flex-1 flex items-center justify-center">
+                        <template x-for="icon in sidebarIcons.filter(i => i.id === 'counters')" :key="icon.id">
+                            <button @click="showCounters = !showCounters"
+                                class="w-10 h-10 flex items-center justify-center rounded-lg transition-colors relative"
+                                :class="[
+                                    showCounters ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700'
+                                ]" :title="icon.title">
+                                <div x-html="icon.icon" class="flex items-center justify-center"></div>
+                                <div x-show="showCounters" class="absolute left-0 w-0.5 h-8 bg-indigo-500"></div>
                             </button>
-                        </div>
-                        <!-- Discovery progress -->
-                        <div x-show="discoveryProgress.total > 0 && discoveryProgress.current < discoveryProgress.total"
-                            class="mt-2">
-                            <div class="flex items-center text-xs text-slate-400 mb-1">
-                                <svg class="animate-spin h-3 w-3 mr-1 text-indigo-400"
-                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                        stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                    </path>
-                                </svg>
-                                <span class="text-xs">Discovering: <span
-                                        x-text="discoveryProgress.current"></span>/<span
-                                        x-text="discoveryProgress.total"></span></span>
-                            </div>
-                            <div class="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300"
-                                    :style="`width: ${(discoveryProgress.current / discoveryProgress.total * 100)}%`">
-                                </div>
-                            </div>
-                        </div>
+                        </template>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Commands List or Executor -->
-                    <div class="flex-1 overflow-y-auto p-3 bg-gray-50 dark:bg-slate-800 transition-colors duration-200">
+            <!-- Side & Main Area Wrapper -->
+            <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <!-- Top Section (Sidebar + Terminal) -->
+                <div class="flex-1 flex min-h-0 overflow-hidden">
+                    <aside x-show="activeView !== null"
+                        class="h-full bg-gray-50 dark:bg-slate-800 shadow-lg overflow-auto flex flex-col border-r border-gray-200 dark:border-slate-700 flex-shrink-0 relative transition-colors duration-200"
+                        :style="'width: ' + sidebarWidth + 'px'"
+                        x-transition:enter="transform transition ease-out duration-200"
+                        x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
+                        x-transition:leave="transform transition ease-in duration-150"
+                        x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full">
 
-                        <!-- Loading State -->
-                        <div x-show="loadingCommands && !showDiscoveryConfirm"
-                            class="flex flex-col items-center justify-center py-8">
-                            <div
-                                class="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 dark:border-slate-800 border-t-indigo-500">
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-3">Scanning deep subcommands...</p>
-                            <p class="text-[10px] text-gray-400 dark:text-slate-600 mt-1">This might take a minute</p>
+                        <!-- Resize Handle (Gutter) -->
+                        <div @mousedown="startResizing"
+                            class="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize hover:bg-indigo-500/50 transition-colors z-50">
                         </div>
 
-                        <!-- Long Scan Confirmation -->
-                        <div x-show="showDiscoveryConfirm"
-                            class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg mb-4">
-                            <div class="flex items-start gap-3">
-                                <div class="p-1 bg-amber-100 dark:bg-amber-900/40 rounded mt-0.5">
-                                    <svg class="w-4 h-4 text-amber-600 dark:text-amber-500" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                                        </path>
-                                    </svg>
+                        <!-- Commands View -->
+                        <div x-show="activeView === 'commands'" class="flex flex-col h-full">
+
+                            <!-- Header -->
+                            <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Commands
+                                        </h2>
+                                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Zephyr shell
+                                            commands</p>
+                                    </div>
+                                    <button @click="openCustomCommandModal()"
+                                        class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                        title="Add Custom Command">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div>
-                                    <h4 class="text-xs font-semibold text-amber-900 dark:text-amber-200">Long scan
-                                        detected</h4>
-                                    <p class="text-xs text-amber-800 dark:text-amber-300 mt-1">The scan is taking a
-                                        little bit longer. Should I continue scanning or cancel?</p>
-                                    <div class="flex gap-2 mt-3">
-                                        <button @click="continueDiscovery()"
-                                            class="px-3 py-1 bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-100 text-[10px] font-medium rounded transition-colors">
-                                            Continue
-                                        </button>
-                                        <button @click="cancelDiscovery()"
-                                            class="px-3 py-1 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-[10px] font-medium rounded hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors">
-                                            Stop Scan
-                                        </button>
+                                <!-- Discovery progress -->
+                                <div x-show="discoveryProgress.total > 0 && discoveryProgress.current < discoveryProgress.total"
+                                    class="mt-2">
+                                    <div class="flex items-center text-xs text-slate-400 mb-1">
+                                        <svg class="animate-spin h-3 w-3 mr-1 text-indigo-400"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                        <span class="text-xs">Discovering: <span
+                                                x-text="discoveryProgress.current"></span>/<span
+                                                x-text="discoveryProgress.total"></span></span>
+                                    </div>
+                                    <div class="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300"
+                                            :style="`width: ${(discoveryProgress.current / discoveryProgress.total * 100)}%`">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Empty State -->
-                        <div x-show="!loadingCommands && commands.length === 0" class="text-center py-8">
+                            <!-- Commands List or Executor -->
                             <div
-                                class="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mx-auto mb-3 transition-colors duration-200">
-                                <svg class="w-6 h-6 text-gray-400 dark:text-slate-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
-                                    </path>
-                                </svg>
-                            </div>
-                            <p class="text-sm text-gray-600 dark:text-slate-300 font-medium">No commands</p>
-                            <p class="text-xs text-gray-500 dark:text-slate-500 mt-1">Scan to discover</p>
-                        </div>
+                                class="flex-1 overflow-y-auto p-3 bg-gray-50 dark:bg-slate-800 transition-colors duration-200">
 
-                        <!-- Commands List -->
-                        <div x-show="!loadingCommands && commands.length > 0 && !selectedCommand" class="space-y-1">
-                            <div
-                                class="border border-gray-200 dark:border-slate-700 rounded-md overflow-hidden bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-slate-700">
-                                <template x-for="cmd in commands" :key="cmd.id">
-                                    <div class="hover:bg-gray-100 dark:hover:bg-slate-750 transition-colors group">
-                                        <!-- Parent Command -->
-                                        <div class="flex items-start">
-                                            <!-- Expand/Collapse Button (only if has subcommands) -->
-                                            <button
-                                                x-show="cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0)"
-                                                @click.stop="toggleCommandExpansion(cmd)"
-                                                class="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex-shrink-0">
-                                                <svg class="w-3 h-3 text-gray-400 dark:text-slate-400 transition-transform"
-                                                    :class="expandedCommands[cmd.id] ? 'rotate-90' : ''" fill="none"
-                                                    stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                                </svg>
-                                            </button>
-                                            <div x-show="!(cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0))"
-                                                class="p-1.5 w-6 h-full flex-shrink-0"></div>
+                                <!-- Loading State -->
+                                <div x-show="loadingCommands && !showDiscoveryConfirm"
+                                    class="flex flex-col items-center justify-center py-8">
+                                    <div
+                                        class="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 dark:border-slate-800 border-t-indigo-500">
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-3">Scanning deep
+                                        subcommands...</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-slate-600 mt-1">This might take a
+                                        minute</p>
+                                </div>
 
-                                            <!-- Command Info -->
-                                            <button @click="selectedCommand = cmd"
-                                                class="flex-1 text-left p-2 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex items-center">
-                                                <div
-                                                    class="font-medium text-gray-800 dark:text-slate-200 flex items-center text-xs">
-                                                    <span class="font-mono"
-                                                        :class="cmd.isCustom ? 'text-indigo-600 dark:text-indigo-400' : ''"
-                                                        x-text="cmd.name"></span>
-
-                                                    <!-- Modified Badge -->
-                                                    <span x-show="cmd.userModified && !cmd.isCustom"
-                                                        class="ml-1.5 text-[8px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1 py-0 rounded font-bold uppercase">
-                                                        Edited
-                                                    </span>
-
-                                                    <!-- Spinner while discovering -->
-                                                    <svg x-show="discoveringSubcommands[cmd.id]"
-                                                        class="ml-1.5 animate-spin h-3 w-3 text-indigo-400"
-                                                        xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10"
-                                                            stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor"
-                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                                        </path>
-                                                    </svg>
-
-                                                    <!-- Badge when subcommands found -->
-                                                    <span
-                                                        x-show="!discoveringSubcommands[cmd.id] && (cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0))"
-                                                        class="ml-1.5 text-[9px] text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/50 px-1 py-0 rounded font-medium">
-                                                        sub
-                                                    </span>
-                                                </div>
-                                            </button>
-
-                                            <!-- Edit Button -->
-                                            <button @click.stop="openCustomCommandModal(cmd)"
-                                                class="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition flex-shrink-0"
-                                                title="Edit command metadata/args">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                                    </path>
-                                                </svg>
-                                            </button>
-
-                                            <!-- Delete Button -->
-                                            <button @click.stop="deleteCustomCommand(cmd.id)"
-                                                class="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-300 hover:text-rose-600 dark:hover:text-white transition flex-shrink-0"
-                                                title="Delete command">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m4 0H10">
-                                                    </path>
-                                                </svg>
-                                            </button>
-
-                                            <!-- Quick Execute Button -->
-                                            <button @click.stop="quickExecuteCommand(cmd)"
-                                                class="p-1.5 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 transition flex-shrink-0"
-                                                title="Execute command">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
-                                                    </path>
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                                                    </path>
-                                                </svg>
-                                            </button>
-
-                                            <!-- Add to Repeat Button -->
-                                            <button @click.stop="openRepeatModal(cmd)"
-                                                class="p-1.5 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 transition flex-shrink-0"
-                                                title="Set as repeat command">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                                    </path>
-                                                </svg>
-                                            </button>
+                                <!-- Long Scan Confirmation -->
+                                <div x-show="showDiscoveryConfirm"
+                                    class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg mb-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="p-1 bg-amber-100 dark:bg-amber-900/40 rounded mt-0.5">
+                                            <svg class="w-4 h-4 text-amber-600 dark:text-amber-500" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                                </path>
+                                            </svg>
                                         </div>
+                                        <div>
+                                            <h4 class="text-xs font-semibold text-amber-900 dark:text-amber-200">Long
+                                                scan
+                                                detected</h4>
+                                            <p class="text-xs text-amber-800 dark:text-amber-300 mt-1">The scan is
+                                                taking a
+                                                little bit longer. Should I continue scanning or cancel?</p>
+                                            <div class="flex gap-2 mt-3">
+                                                <button @click="continueDiscovery()"
+                                                    class="px-3 py-1 bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-100 text-[10px] font-medium rounded transition-colors">
+                                                    Continue
+                                                </button>
+                                                <button @click="cancelDiscovery()"
+                                                    class="px-3 py-1 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-[10px] font-medium rounded hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors">
+                                                    Stop Scan
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                        <!-- Subcommands (shown when expanded) -->
-                                        <div x-show="expandedCommands[cmd.id] && cmd.subcommands"
-                                            class="ml-6 border-l-2 border-indigo-500/30 bg-gray-50 dark:bg-slate-750">
-                                            <template x-for="subcmd in cmd.subcommands" :key="subcmd.id">
-                                                <div
-                                                    class="flex items-center border-b border-gray-200 dark:border-slate-700 last:border-b-0 group/sub">
-                                                    <button @click="selectedCommand = subcmd"
-                                                        class="flex-1 text-left p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex items-center">
-                                                        <div class="font-medium text-gray-700 dark:text-slate-300 text-xs font-mono"
-                                                            x-text="subcmd.name"></div>
+                                <!-- Empty State -->
+                                <div x-show="!loadingCommands && commands.length === 0" class="text-center py-8">
+                                    <div
+                                        class="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-lg flex items-center justify-center mx-auto mb-3 transition-colors duration-200">
+                                        <svg class="w-6 h-6 text-gray-400 dark:text-slate-400" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-slate-300 font-medium">No commands</p>
+                                    <p class="text-xs text-gray-500 dark:text-slate-500 mt-1">Scan to discover</p>
+                                </div>
+
+                                <!-- Commands List -->
+                                <div x-show="!loadingCommands && commands.length > 0 && !selectedCommand"
+                                    class="space-y-1">
+                                    <div
+                                        class="border border-gray-200 dark:border-slate-700 rounded-md overflow-hidden bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-slate-700">
+                                        <template x-for="cmd in commands" :key="cmd.id">
+                                            <div
+                                                class="hover:bg-gray-100 dark:hover:bg-slate-750 transition-colors group">
+                                                <!-- Parent Command -->
+                                                <div class="flex items-start">
+                                                    <!-- Expand/Collapse Button (only if has subcommands) -->
+                                                    <button
+                                                        x-show="cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0)"
+                                                        @click.stop="toggleCommandExpansion(cmd)"
+                                                        class="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex-shrink-0">
+                                                        <svg class="w-3 h-3 text-gray-400 dark:text-slate-400 transition-transform"
+                                                            :class="expandedCommands[cmd.id] ? 'rotate-90' : ''"
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                        </svg>
+                                                    </button>
+                                                    <div x-show="!(cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0))"
+                                                        class="p-1.5 w-6 h-full flex-shrink-0"></div>
+
+                                                    <!-- Command Info -->
+                                                    <button @click="selectedCommand = cmd"
+                                                        class="flex-1 text-left p-2 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex items-center">
+                                                        <div
+                                                            class="font-medium text-gray-800 dark:text-slate-200 flex items-center text-xs">
+                                                            <span class="font-mono"
+                                                                :class="cmd.isCustom ? 'text-indigo-600 dark:text-indigo-400' : ''"
+                                                                x-text="cmd.name"></span>
+
+                                                            <!-- Modified Badge -->
+                                                            <span x-show="cmd.userModified && !cmd.isCustom"
+                                                                class="ml-1.5 text-[8px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1 py-0 rounded font-bold uppercase">
+                                                                Edited
+                                                            </span>
+
+                                                            <!-- Spinner while discovering -->
+                                                            <svg x-show="discoveringSubcommands[cmd.id]"
+                                                                class="ml-1.5 animate-spin h-3 w-3 text-indigo-400"
+                                                                xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                                viewBox="0 0 24 24">
+                                                                <circle class="opacity-25" cx="12" cy="12" r="10"
+                                                                    stroke="currentColor" stroke-width="4"></circle>
+                                                                <path class="opacity-75" fill="currentColor"
+                                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                                                </path>
+                                                            </svg>
+
+                                                            <!-- Badge when subcommands found -->
+                                                            <span
+                                                                x-show="!discoveringSubcommands[cmd.id] && (cmd.hasSubcommands || (cmd.subcommands && cmd.subcommands.length > 0))"
+                                                                class="ml-1.5 text-[9px] text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/50 px-1 py-0 rounded font-medium">
+                                                                sub
+                                                            </span>
+                                                        </div>
                                                     </button>
 
-                                                    <!-- Edit Button for Subcommand -->
-                                                    <button @click.stop="openCustomCommandModal(subcmd)"
-                                                        class="p-1.5 opacity-0 group-hover/sub:opacity-100 hover:text-indigo-500 transition flex-shrink-0"
-                                                        title="Edit subcommand">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    <!-- Edit Button -->
+                                                    <button @click.stop="openCustomCommandModal(cmd)"
+                                                        class="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition flex-shrink-0"
+                                                        title="Edit command metadata/args">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
                                                             viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
@@ -553,11 +528,24 @@
                                                         </svg>
                                                     </button>
 
+                                                    <!-- Delete Button -->
+                                                    <button @click.stop="deleteCustomCommand(cmd.id)"
+                                                        class="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-300 hover:text-rose-600 dark:hover:text-white transition flex-shrink-0"
+                                                        title="Delete command">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m4 0H10">
+                                                            </path>
+                                                        </svg>
+                                                    </button>
+
                                                     <!-- Quick Execute Button -->
-                                                    <button @click.stop="quickExecuteCommand(subcmd)"
+                                                    <button @click.stop="quickExecuteCommand(cmd)"
                                                         class="p-1.5 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 transition flex-shrink-0"
                                                         title="Execute command">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
                                                             viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
@@ -568,11 +556,12 @@
                                                             </path>
                                                         </svg>
                                                     </button>
+
                                                     <!-- Add to Repeat Button -->
-                                                    <button @click.stop="openRepeatModal(subcmd)"
+                                                    <button @click.stop="openRepeatModal(cmd)"
                                                         class="p-1.5 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 transition flex-shrink-0"
                                                         title="Set as repeat command">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
                                                             viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
@@ -581,226 +570,682 @@
                                                         </svg>
                                                     </button>
                                                 </div>
+
+                                                <!-- Subcommands (shown when expanded) -->
+                                                <div x-show="expandedCommands[cmd.id] && cmd.subcommands"
+                                                    class="ml-6 border-l-2 border-indigo-500/30 bg-gray-50 dark:bg-slate-750">
+                                                    <template x-for="subcmd in cmd.subcommands" :key="subcmd.id">
+                                                        <div
+                                                            class="flex items-center border-b border-gray-200 dark:border-slate-700 last:border-b-0 group/sub">
+                                                            <button @click="selectedCommand = subcmd"
+                                                                class="flex-1 text-left p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 transition flex items-center">
+                                                                <div class="font-medium text-gray-700 dark:text-slate-300 text-xs font-mono"
+                                                                    x-text="subcmd.name"></div>
+                                                            </button>
+
+                                                            <!-- Edit Button for Subcommand -->
+                                                            <button @click.stop="openCustomCommandModal(subcmd)"
+                                                                class="p-1.5 opacity-0 group-hover/sub:opacity-100 hover:text-indigo-500 transition flex-shrink-0"
+                                                                title="Edit subcommand">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                                    </path>
+                                                                </svg>
+                                                            </button>
+
+                                                            <!-- Quick Execute Button -->
+                                                            <button @click.stop="quickExecuteCommand(subcmd)"
+                                                                class="p-1.5 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 transition flex-shrink-0"
+                                                                title="Execute command">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                                                    </path>
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                                    </path>
+                                                                </svg>
+                                                            </button>
+                                                            <!-- Add to Repeat Button -->
+                                                            <button @click.stop="openRepeatModal(subcmd)"
+                                                                class="p-1.5 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 transition flex-shrink-0"
+                                                                title="Set as repeat command">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                                    </path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Command Executor Panel -->
+                                <div x-show="selectedCommand" class="space-y-3">
+                                    <button @click="selectedCommand = null"
+                                        class="inline-flex items-center text-indigo-400 hover:text-indigo-300 text-xs font-medium">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                        <span>Back</span>
+                                    </button>
+
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
+                                        <h3 class="font-semibold text-sm text-gray-900 dark:text-slate-100 font-mono"
+                                            x-text="selectedCommand?.fullName || selectedCommand?.name"></h3>
+                                        <p class="text-xs text-gray-500 dark:text-slate-300 mt-1"
+                                            x-text="selectedCommand?.description">
+                                        </p>
+                                        <p x-show="selectedCommand?.parent"
+                                            class="text-[10px] text-indigo-500 dark:text-indigo-400 mt-1 font-medium">
+                                            Parent: <span class="font-mono" x-text="selectedCommand?.parent"></span>
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Usage</label>
+                                        <p class="text-xs text-gray-600 dark:text-slate-400 font-mono bg-gray-50 dark:bg-slate-900 p-2 rounded border border-gray-200 dark:border-slate-700"
+                                            x-text="getCommandUsage(selectedCommand) || 'No usage info'"></p>
+                                    </div>
+
+                                    <div x-show="selectedCommand?.args && selectedCommand.args.length > 0"
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">Arguments</label>
+                                        <template x-for="arg in selectedCommand?.args" :key="arg.id">
+                                            <div class="mb-2 last:mb-0">
+                                                <label
+                                                    class="block text-xs text-gray-700 dark:text-slate-300 mb-1 font-medium">
+                                                    <span x-text="arg.name"></span>
+                                                    <span x-show="!arg.required"
+                                                        class="text-gray-500 dark:text-slate-500 text-[10px]">(optional)</span>
+                                                </label>
+                                                <input type="text" placeholder="Enter value..."
+                                                    class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                                    @change="if (!commandArgs) commandArgs = {}; commandArgs[arg.id] = $event.target.value">
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Subcommands Section (if any direct children exist) -->
+                                    <div x-show="selectedCommand && getDirectSubcommands(selectedCommand).length > 0"
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">Subcommands</label>
+                                        <div class="space-y-1">
+                                            <template x-for="sub in getDirectSubcommands(selectedCommand)"
+                                                :key="sub.id">
+                                                <button
+                                                    @click="selectedCommand = sub; $nextTick(() => { $el.closest('.overflow-y-auto').scrollTop = 0; })"
+                                                    class="w-full text-left p-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-850 rounded transition-colors flex items-center">
+                                                    <div class="font-medium text-xs text-indigo-600 dark:text-indigo-400 font-mono"
+                                                        x-text="sub.name"></div>
+                                                </button>
                                             </template>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button @click="executeCommand(selectedCommand)"
+                                            class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-md shadow-sm text-xs">
+                                            <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
+                                                </path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Execute
+                                        </button>
+                                        <button @click="selectedCommand = null"
+                                            class="px-3 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 font-medium rounded-md text-xs">
+                                            Cancel
+                                        </button>
+                                    </div>
+
+                                    <div x-show="commandResult"
+                                        class="p-3 bg-gray-900 dark:bg-slate-900 text-gray-100 dark:text-slate-100 rounded-md text-xs font-mono max-h-24 overflow-y-auto border border-gray-700 dark:border-slate-700 shadow-inner">
+                                        <p class="text-[10px] text-gray-400 dark:text-slate-400 mb-1 font-sans">Result:
+                                        </p>
+                                        <p x-text="commandResult"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rescan Button -->
+                            <div class="border-t border-gray-200 dark:border-slate-700 p-3">
+                                <button @click="scanCommands(true)"
+                                    class="w-full inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-slate-700 disabled:to-slate-700 text-white font-semibold rounded-md shadow-sm text-xs"
+                                    :disabled="!connected || loadingCommands">
+                                    <svg class="w-3 h-3 mr-1.5" :class="loadingCommands ? 'animate-spin' : ''"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                    <span x-text="loadingCommands ? 'Rescanning...' : 'Rescan'"></span>
+                                </button>
+                            </div>
+
+                            <!-- Last Scanned Info -->
+                            <div x-show="lastScannedTime"
+                                class="border-t border-gray-200 dark:border-slate-700 px-3 py-2 text-[10px] text-gray-500 dark:text-slate-500">
+                                <div class="flex items-center">
+                                    <svg class="w-3 h-3 mr-1 text-gray-400 dark:text-slate-600" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Last: <span class="font-medium text-gray-600 dark:text-slate-400"
+                                            x-text="new Date(lastScannedTime).toLocaleTimeString()"></span></span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Repeat Commands View -->
+                        <div x-show="activeView === 'repeat'" class="flex flex-col h-full">
+                            <!-- Header -->
+                            <div class="p-4 border-b border-slate-700">
+                                <h2 class="text-lg font-semibold text-slate-100">Repeat</h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Periodic command execution</p>
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto p-3 space-y-2">
+                                <!-- Empty State -->
+                                <div x-show="repeatCommands.length === 0" class="text-center py-8">
+                                    <p class="text-sm text-gray-500 dark:text-slate-500">No repeat commands</p>
+                                    <button @click="openRepeatModal()"
+                                        class="mt-4 text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 text-xs font-medium">
+                                        + Create New
+                                    </button>
+                                </div>
+
+                                <!-- Repeat List -->
+                                <template x-for="rc in repeatCommands" :key="rc.id">
+                                    <div class="bg-white dark:bg-slate-750 border rounded-md p-2 transition-all duration-200 shadow-sm"
+                                        :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'border-indigo-500 shadow-indigo-500/20' : 'border-gray-200 dark:border-slate-700'">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center flex-wrap gap-1">
+                                                    <div class="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 truncate mr-1"
+                                                        x-text="rc.command"></div>
+                                                    <!-- Port Badges -->
+                                                    <template x-for="run in rc.runningSessions" :key="run.sessionId">
+                                                        <span
+                                                            class="px-1 py-0.5 border text-[8px] rounded flex items-center transition-colors"
+                                                            :class="run.sessionId === activeSessionId ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-200 dark:border-indigo-500 text-indigo-700 dark:text-indigo-200' : 'bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-slate-400'">
+                                                            <span x-text="run.port"></span>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <button @click="toggleRepeatCommand(rc)"
+                                                class="ml-2 w-8 h-4 rounded-full transition-colors relative"
+                                                :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-600'">
+                                                <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform"
+                                                    :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'translate-x-4' : ''">
+                                                </div>
+                                            </button>
+                                        </div>
+                                        <div
+                                            class="flex items-center justify-between text-[10px] mt-2 border-t border-gray-100 dark:border-slate-700/50 pt-2">
+                                            <div class="text-gray-500 dark:text-slate-400">
+                                                Interval: <span class="text-gray-700 dark:text-slate-200"
+                                                    x-text="rc.interval"></span>s
+                                            </div>
+                                            <div class="flex space-x-3">
+                                                <button @click="openRepeatModal(rc, true)"
+                                                    class="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-medium">
+                                                    Edit
+                                                </button>
+                                                <button @click="removeRepeatCommand(rc.id)"
+                                                    class="text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium">
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
                             </div>
+
+                            <!-- Create New Button -->
+                            <div class="p-3 border-t border-gray-200 dark:border-slate-700">
+                                <button @click="openRepeatModal()"
+                                    class="w-full py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white rounded text-xs font-medium transition-colors">
+                                    + New Repeat Command
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Command Executor Panel -->
-                        <div x-show="selectedCommand" class="space-y-3">
-                            <button @click="selectedCommand = null"
-                                class="inline-flex items-center text-indigo-400 hover:text-indigo-300 text-xs font-medium">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                <span>Back</span>
-                            </button>
-
+                        <!-- Create/Edit Repeat Command View -->
+                        <div x-show="activeView === 'repeat-create'"
+                            class="flex flex-col h-full bg-gray-50 dark:bg-slate-800 transition-colors duration-200">
                             <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
-                                <h3 class="font-semibold text-sm text-gray-900 dark:text-slate-100 font-mono"
-                                    x-text="selectedCommand?.fullName || selectedCommand?.name"></h3>
-                                <p class="text-xs text-gray-500 dark:text-slate-300 mt-1"
-                                    x-text="selectedCommand?.description">
-                                </p>
-                                <p x-show="selectedCommand?.parent"
-                                    class="text-[10px] text-indigo-500 dark:text-indigo-400 mt-1 font-medium">
-                                    Parent: <span class="font-mono" x-text="selectedCommand?.parent"></span>
-                                </p>
+                                class="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100"
+                                        x-text="repeatModalData.id ? 'Edit Repeat' : 'Create Repeat'"></h2>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure periodic
+                                        execution</p>
+                                </div>
+                                <button @click="activeView = 'repeat'"
+                                    class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12">
+                                        </path>
+                                    </svg>
+                                </button>
                             </div>
 
-                            <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
-                                <label
-                                    class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Usage</label>
-                                <p class="text-xs text-gray-600 dark:text-slate-400 font-mono bg-gray-50 dark:bg-slate-900 p-2 rounded border border-gray-200 dark:border-slate-700"
-                                    x-text="getCommandUsage(selectedCommand) || 'No usage info'"></p>
-                            </div>
-
-                            <div x-show="selectedCommand?.args && selectedCommand.args.length > 0"
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
-                                <label
-                                    class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">Arguments</label>
-                                <template x-for="arg in selectedCommand?.args" :key="arg.id">
-                                    <div class="mb-2 last:mb-0">
-                                        <label class="block text-xs text-gray-700 dark:text-slate-300 mb-1 font-medium">
-                                            <span x-text="arg.name"></span>
-                                            <span x-show="!arg.required"
-                                                class="text-gray-500 dark:text-slate-500 text-[10px]">(optional)</span>
-                                        </label>
-                                        <input type="text" placeholder="Enter value..."
-                                            class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                                            @change="if (!commandArgs) commandArgs = {}; commandArgs[arg.id] = $event.target.value">
+                            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Description
+                                        (optional)</label>
+                                    <input type="text" x-model="repeatModalData.name" placeholder="e.g. Heartbeat"
+                                        class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Command
+                                        / Raw Text</label>
+                                    <textarea x-model="repeatModalData.command" rows="4" placeholder="Enter command..."
+                                        class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 font-mono focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Interval
+                                        (seconds)</label>
+                                    <div class="flex items-center space-x-3">
+                                        <input type="number" step="0.1" x-model="repeatModalData.interval"
+                                            class="w-24 px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
+                                        <span class="text-xs text-gray-500 dark:text-slate-400">seconds</span>
                                     </div>
-                                </template>
-                            </div>
-
-                            <!-- Subcommands Section (if any direct children exist) -->
-                            <div x-show="selectedCommand && getDirectSubcommands(selectedCommand).length > 0"
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm">
-                                <label
-                                    class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">Subcommands</label>
-                                <div class="space-y-1">
-                                    <template x-for="sub in getDirectSubcommands(selectedCommand)" :key="sub.id">
-                                        <button
-                                            @click="selectedCommand = sub; $nextTick(() => { $el.closest('.overflow-y-auto').scrollTop = 0; })"
-                                            class="w-full text-left p-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-100 dark:hover:bg-slate-850 rounded transition-colors flex items-center">
-                                            <div class="font-medium text-xs text-indigo-600 dark:text-indigo-400 font-mono"
-                                                x-text="sub.name"></div>
-                                        </button>
-                                    </template>
                                 </div>
                             </div>
 
-                            <div class="flex gap-2">
-                                <button @click="executeCommand(selectedCommand)"
-                                    class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-md shadow-sm text-xs">
-                                    <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
-                                        </path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Execute
+                            <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex space-x-2">
+                                <button @click="addRepeatCommand()"
+                                    class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-sm transition-colors"
+                                    x-text="repeatModalData.id ? 'Update' : 'Save'">
                                 </button>
-                                <button @click="selectedCommand = null"
-                                    class="px-3 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 font-medium rounded-md text-xs">
+                                <button @click="activeView = 'repeat'"
+                                    class="px-4 py-2.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 rounded font-medium text-sm transition-colors">
                                     Cancel
                                 </button>
                             </div>
+                        </div>
 
-                            <div x-show="commandResult"
-                                class="p-3 bg-gray-900 dark:bg-slate-900 text-gray-100 dark:text-slate-100 rounded-md text-xs font-mono max-h-24 overflow-y-auto border border-gray-700 dark:border-slate-700 shadow-inner">
-                                <p class="text-[10px] text-gray-400 dark:text-slate-400 mb-1 font-sans">Result:
+                        <!-- Project Settings View -->
+                        <div x-show="activeView === 'settings'" class="flex flex-col h-full">
+                            <!-- Header -->
+                            <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Project Settings
+                                </h2>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Application configuration
                                 </p>
-                                <p x-text="commandResult"></p>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Rescan Button -->
-                    <div class="border-t border-gray-200 dark:border-slate-700 p-3">
-                        <button @click="scanCommands(true)"
-                            class="w-full inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-slate-700 disabled:to-slate-700 text-white font-semibold rounded-md shadow-sm text-xs"
-                            :disabled="!connected || loadingCommands">
-                            <svg class="w-3 h-3 mr-1.5" :class="loadingCommands ? 'animate-spin' : ''" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                                </path>
-                            </svg>
-                            <span x-text="loadingCommands ? 'Rescanning...' : 'Rescan'"></span>
-                        </button>
-                    </div>
-
-                    <!-- Last Scanned Info -->
-                    <div x-show="lastScannedTime"
-                        class="border-t border-gray-200 dark:border-slate-700 px-3 py-2 text-[10px] text-gray-500 dark:text-slate-500">
-                        <div class="flex items-center">
-                            <svg class="w-3 h-3 mr-1 text-gray-400 dark:text-slate-600" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>Last: <span class="font-medium text-gray-600 dark:text-slate-400"
-                                    x-text="new Date(lastScannedTime).toLocaleTimeString()"></span></span>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Repeat Commands View -->
-                <div x-show="activeView === 'repeat'" class="flex flex-col h-full">
-                    <!-- Header -->
-                    <div class="p-4 border-b border-slate-700">
-                        <h2 class="text-lg font-semibold text-slate-100">Repeat</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Periodic command execution</p>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto p-3 space-y-2">
-                        <!-- Empty State -->
-                        <div x-show="repeatCommands.length === 0" class="text-center py-8">
-                            <p class="text-sm text-gray-500 dark:text-slate-500">No repeat commands</p>
-                            <button @click="openRepeatModal()"
-                                class="mt-4 text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 text-xs font-medium">
-                                + Create New
-                            </button>
-                        </div>
-
-                        <!-- Repeat List -->
-                        <template x-for="rc in repeatCommands" :key="rc.id">
-                            <div class="bg-white dark:bg-slate-750 border rounded-md p-2 transition-all duration-200 shadow-sm"
-                                :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'border-indigo-500 shadow-indigo-500/20' : 'border-gray-200 dark:border-slate-700'">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center flex-wrap gap-1">
-                                            <div class="text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 truncate mr-1"
-                                                x-text="rc.command"></div>
-                                            <!-- Port Badges -->
-                                            <template x-for="run in rc.runningSessions" :key="run.sessionId">
+                            <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                                <!-- Theme Toggle -->
+                                <div
+                                    class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                    <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                        Appearance
+                                    </label>
+                                    <button @click="toggleTheme()"
+                                        class="w-full flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors">
+                                        <span class="text-xs text-gray-700 dark:text-slate-300 font-medium">Theme
+                                            Mode</span>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-xs text-gray-500 dark:text-slate-400"
+                                                x-text="theme === 'dark' ? 'Dark' : 'Light'"></span>
+                                            <div class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                                :class="theme === 'dark' ? 'bg-indigo-600' : 'bg-gray-300'">
                                                 <span
-                                                    class="px-1 py-0.5 border text-[8px] rounded flex items-center transition-colors"
-                                                    :class="run.sessionId === activeSessionId ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-200 dark:border-indigo-500 text-indigo-700 dark:text-indigo-200' : 'bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-slate-400'">
-                                                    <span x-text="run.port"></span>
-                                                </span>
-                                            </template>
-                                        </div>
-                                    </div>
-                                    <button @click="toggleRepeatCommand(rc)"
-                                        class="ml-2 w-8 h-4 rounded-full transition-colors relative"
-                                        :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-600'">
-                                        <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform"
-                                            :class="rc.runningSessions.some(s => s.sessionId === activeSessionId) ? 'translate-x-4' : ''">
+                                                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                    :class="theme === 'dark' ? 'translate-x-4' : 'translate-x-0'"></span>
+                                            </div>
                                         </div>
                                     </button>
                                 </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Connection View -->
+                        <div x-show="activeView === 'connection'" class="flex flex-col h-full">
+                            <!-- Header -->
+                            <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Connection</h2>
+                                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage terminal connections
+                                </p>
+                            </div>
+
+                            <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                                <!-- Connection Mode -->
                                 <div
-                                    class="flex items-center justify-between text-[10px] mt-2 border-t border-gray-100 dark:border-slate-700/50 pt-2">
-                                    <div class="text-gray-500 dark:text-slate-400">
-                                        Interval: <span class="text-gray-700 dark:text-slate-200"
-                                            x-text="rc.interval"></span>s
+                                    class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                    <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                        Connection Mode
+                                    </label>
+                                    <div class="flex space-x-2 bg-gray-100 dark:bg-slate-900 p-1 rounded-md">
+                                        <button @click="connectionMode = 'serial'"
+                                            class="flex-1 py-1.5 rounded text-xs font-medium transition-all duration-200"
+                                            :class="connectionMode === 'serial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-300'">
+                                            Serial
+                                        </button>
+                                        <button @click="connectionMode = 'telnet'"
+                                            class="flex-1 py-1.5 rounded text-xs font-medium transition-all duration-200"
+                                            :class="connectionMode === 'telnet' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-300'">
+                                            Telnet
+                                        </button>
                                     </div>
-                                    <div class="flex space-x-3">
-                                        <button @click="openRepeatModal(rc, true)"
-                                            class="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-medium">
-                                            Edit
+                                </div>
+
+                                <!-- Serial Settings -->
+                                <div x-show="connectionMode === 'serial'" class="space-y-3">
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                            Serial Port
+                                        </label>
+                                        <div class="flex space-x-2 mb-2">
+                                            <select x-model="selectedPort" @keydown.enter="saveSettings()"
+                                                class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                                                :disabled="loadingPorts">
+                                                <option value="">Select a port...</option>
+                                                <template x-for="port in availablePorts" :key="port.device">
+                                                    <option :value="port.device"
+                                                        x-text="port.device + ' - ' + (port.description || 'Unknown')">
+                                                    </option>
+                                                </template>
+                                            </select>
+                                            <button @click="loadPorts()"
+                                                class="px-2 py-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 rounded text-xs font-medium text-gray-600 dark:text-slate-300"
+                                                :disabled="loadingPorts">
+                                                <svg x-show="loadingPorts" class="w-3 h-3 animate-spin" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                    </path>
+                                                </svg>
+                                                <span x-show="!loadingPorts">↻</span>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] text-gray-500 dark:text-slate-400 mb-1 font-medium">
+                                                Or enter manually:
+                                            </label>
+                                            <input type="text" x-model="manualPort"
+                                                @input="if(manualPort) selectedPort = manualPort"
+                                                @keydown.enter="saveSettings()" placeholder="/dev/pts/12"
+                                                class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                            Baud Rate
+                                        </label>
+                                        <select x-model="baudRate" @keydown.enter="saveSettings()" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 
+                                    focus:outline-none focus:ring-1 focus:ring-indigo-500 
+                                    focus:border-transparent">
+                                            <option value="9600">9600</option>
+                                            <option value="19200">19200</option>
+                                            <option value="38400">38400</option>
+                                            <option value="57600">57600</option>
+                                            <option value="115200" selected>115200</option>
+                                            <option value="230400">230400</option>
+                                            <option value="460800">460800</option>
+                                            <option value="921600">921600</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Telnet Settings -->
+                                <div x-show="connectionMode === 'telnet'" class="space-y-3">
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                            Host
+                                        </label>
+                                        <input type="text" x-model="telnetHost" @keydown.enter="saveSettings()"
+                                            placeholder="localhost or 192.168.1.100"
+                                            class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
+                                    </div>
+                                    <div
+                                        class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                            Port
+                                        </label>
+                                        <input type="number" x-model="telnetPort" @keydown.enter="saveSettings()"
+                                            placeholder="23"
+                                            class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
+                                    </div>
+                                </div>
+
+                                <div x-show="statusMessage" class="p-2 rounded-md border text-xs"
+                                    :class="statusMessageType === 'error' ? 'bg-rose-900/30 border-rose-700 text-rose-300' : 'bg-emerald-900/30 border-emerald-700 text-emerald-300'">
+                                    <div class="flex items-start">
+                                        <svg x-show="statusMessageType === 'error'" class="w-4 h-4 mr-1.5 flex-shrink-0"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <svg x-show="statusMessageType !== 'error'" class="w-4 h-4 mr-1.5 flex-shrink-0"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="font-medium" x-text="statusMessage"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button @click="saveSettings()" :disabled="connecting"
+                                        class="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg shadow-md transition-all duration-200">
+                                        <!-- Loading Spinner -->
+                                        <svg x-show="connectButtonState === 'connecting'"
+                                            class="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4">
+                                            </circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                        <!-- Connect Icon -->
+                                        <svg x-show="connectButtonState === 'connect'" class="w-4 h-4 mr-2" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        <!-- Switch Icon -->
+                                        <svg x-show="connectButtonState === 'switch'" class="w-4 h-4 mr-2" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                        </svg>
+                                        <!-- Disconnect Icon -->
+                                        <svg x-show="connectButtonState === 'disconnect'" class="w-4 h-4 mr-2"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        <span x-text="{
+                                    'connecting': 'Connecting...',
+                                    'connect': 'Connect',
+                                    'switch': 'Switch to Tab',
+                                    'disconnect': 'Disconnect'
+                                }[connectButtonState]"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Tab Bar and Terminal Container -->
+                    <!-- Multi-Pane Terminal Layout -->
+                    <div class="flex-1 flex bg-gray-100 dark:bg-slate-900 overflow-hidden relative transition-colors duration-200"
+                        :class="layoutGroups.length > 1 ? 'flex-row' : 'flex-col'">
+                        <template x-for="(group, gIdx) in layoutGroups" :key="group.id">
+                            <div class="flex-1 flex flex-col border-r border-gray-200 dark:border-slate-700 last:border-r-0 relative group"
+                                @dragover="handleDragOver($event, group.id)" @dragleave="handleDragLeave()"
+                                @drop="handleDrop($event, group.id)">
+
+                                <!-- Drop Zone Indicators -->
+                                <div x-show="dragOverGroupId === group.id && dragOverPosition === 'left'"
+                                    class="absolute inset-y-0 left-0 w-1/4 bg-indigo-500/20 border-l-2 border-indigo-500 z-50 pointer-events-none">
+                                </div>
+                                <div x-show="dragOverGroupId === group.id && dragOverPosition === 'right'"
+                                    class="absolute inset-y-0 right-0 w-1/4 bg-indigo-500/20 border-r-2 border-indigo-500 z-50 pointer-events-none">
+                                </div>
+                                <div x-show="dragOverGroupId === group.id && dragOverPosition === 'top'"
+                                    class="absolute inset-x-0 top-0 h-1/4 bg-indigo-500/20 border-t-2 border-indigo-500 z-50 pointer-events-none">
+                                </div>
+                                <div x-show="dragOverGroupId === group.id && dragOverPosition === 'bottom'"
+                                    class="absolute inset-x-0 bottom-0 h-1/4 bg-indigo-500/20 border-b-2 border-indigo-500 z-50 pointer-events-none">
+                                </div>
+                                <div x-show="dragOverGroupId === group.id && dragOverPosition === 'center'"
+                                    class="absolute inset-0 bg-indigo-500/10 z-40 pointer-events-none"></div>
+
+
+                                <!-- Pane Tab Bar -->
+                                <div x-show="group.sessionIds.length > 0"
+                                    class="flex bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors duration-200"
+                                    @dragover.stop="handleDragOver($event, group.id, 'center')">
+                                    <template x-for="sid in group.sessionIds" :key="sid">
+                                        <div draggable="true" @dragstart="handleDragStart(sid)"
+                                            @dragend="handleDragEnd()" @click="switchSession(sid, group.id)"
+                                            :class="group.activeSessionId === sid ? 'bg-white dark:bg-slate-900 border-t-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-750 hover:text-gray-700 dark:hover:text-slate-200 border-t-2 border-transparent border-r border-gray-200 dark:border-slate-700'"
+                                            class="flex items-center px-4 py-2 text-sm cursor-pointer transition-colors whitespace-nowrap min-w-[120px] max-w-[200px] z-10">
+                                            <span class="flex-1 truncate"
+                                                x-text="sessions.find(s => s.id === sid)?.port || 'Unknown'"></span>
+                                            <button @click.stop="closeSession(sid, group.id)"
+                                                class="p-1 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+
+                                    <!-- Split Buttons (Visible on hover) -->
+                                    <div
+                                        class="ml-auto flex items-center px-2 space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button @click="splitGroup(group.activeSessionId, 'right')" title="Split Right"
+                                            class="p-1 text-slate-500 hover:text-slate-300 rounded hover:bg-slate-700">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 5l7 7-7 7"></path>
+                                            </svg>
                                         </button>
-                                        <button @click="removeRepeatCommand(rc.id)"
-                                            class="text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-medium">
-                                            Delete
-                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Pane Terminal Container -->
+                                <div
+                                    class="flex-1 relative overflow-hidden bg-white dark:bg-slate-900 transition-colors duration-200">
+                                    <template x-for="sid in group.sessionIds" :key="sid">
+                                        <div x-show="group.activeSessionId === sid" :id="'terminal-' + sid"
+                                            class="absolute inset-0 w-full h-full"></div>
+                                    </template>
+
+                                    <!-- Internal Empty State (Should rarely happen) -->
+                                    <div x-show="group.sessionIds.length === 0 && sessions.length > 0"
+                                        class="flex items-center justify-center h-full text-gray-400 dark:text-slate-600 italic text-xs">
+                                        No sessions in this pane
                                     </div>
                                 </div>
                             </div>
                         </template>
-                    </div>
 
-                    <!-- Create New Button -->
-                    <div class="p-3 border-t border-gray-200 dark:border-slate-700">
-                        <button @click="openRepeatModal()"
-                            class="w-full py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white rounded text-xs font-medium transition-colors">
-                            + New Repeat Command
-                        </button>
+                        <!-- Empty State (No Panes) -->
+                        <div x-show="layoutGroups.length === 0"
+                            class="flex flex-col items-center justify-center h-full w-full text-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
+                            <p>No active terminals</p>
+                            <button @click="resetLayout()"
+                                class="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 text-sm mt-2">
+                                Reset Layout
+                            </button>
+                        </div>
+                        <!-- Global Empty State -->
+                        <div x-show="sessions.length === 0"
+                            class="flex flex-col items-center justify-center h-full w-full text-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
+                            <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                                </path>
+                            </svg>
+                            <p class="text-xl font-medium">No Active Sessions</p>
+                            <p class="text-sm mt-2">Connect in the <button @click="activeView = 'connection'"
+                                    class="text-indigo-500 hover:text-indigo-600 font-medium">connection panel</button>
+                                to get
+                                started</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Create/Edit Repeat Command View -->
-                <div x-show="activeView === 'repeat-create'"
-                    class="flex flex-col h-full bg-gray-50 dark:bg-slate-800 transition-colors duration-200">
-                    <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100"
-                                x-text="repeatModalData.id ? 'Edit Repeat' : 'Create Repeat'"></h2>
-                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Configure periodic
-                                execution</p>
-                        </div>
-                        <button @click="activeView = 'repeat'"
-                            class="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-200">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Bottom Panel (Counters) -->
+                <div x-show="showCounters" x-cloak
+                    class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 flex items-center px-4 transition-all duration-300 shrink-0 relative"
+                    :class="counterPanelHeight === 'large' ? 'h-24' : 'h-16'">
+
+                    <!-- Panel Actions (Top Right) -->
+                    <div class="absolute top-1 right-1 flex items-center gap-0.5">
+                        <!-- Resize Button -->
+                        <button @click="counterPanelHeight = (counterPanelHeight === 'normal' ? 'large' : 'normal')"
+                            class="p-0.5 text-gray-400 hover:text-indigo-500 transition-colors"
+                            :title="counterPanelHeight === 'normal' ? 'Enlarge Panel' : 'Shrink Panel'">
+                            <svg x-show="counterPanelHeight === 'normal'" class="w-3.5 h-3.5" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 11l7-7 7 7M5 19l7-7 7 7"></path>
+                            </svg>
+                            <svg x-show="counterPanelHeight === 'large'" class="w-3.5 h-3.5" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 13l-7 7-7-7M19 5l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Close Button -->
+                        <button @click="showCounters = false"
+                            class="p-0.5 text-gray-400 hover:text-rose-500 transition-colors"
+                            title="Hide Counters Panel">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M6 18L18 6M6 6l12 12">
                                 </path>
@@ -808,523 +1253,240 @@
                         </button>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                        <div>
-                            <label
-                                class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Description
-                                (optional)</label>
-                            <input type="text" x-model="repeatModalData.name" placeholder="e.g. Heartbeat"
-                                class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Command
-                                / Raw Text</label>
-                            <textarea x-model="repeatModalData.command" rows="4" placeholder="Enter command..."
-                                class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 font-mono focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1.5">Interval
-                                (seconds)</label>
-                            <div class="flex items-center space-x-3">
-                                <input type="number" step="0.1" x-model="repeatModalData.interval"
-                                    class="w-24 px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-sm text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
-                                <span class="text-xs text-gray-500 dark:text-slate-400">seconds</span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Counters List -->
+                    <div class="flex-1 flex items-center gap-3 overflow-x-auto no-scrollbar py-1 pt-3">
+                        <template x-for="counter in counters" :key="counter.id">
+                            <div
+                                class="flex items-center bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-lg pl-3 pr-2 py-1 gap-2 group min-w-[200px] border-l-4 border-l-indigo-500">
 
-                    <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex space-x-2">
-                        <button @click="addRepeatCommand()"
-                            class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold text-sm transition-colors"
-                            x-text="repeatModalData.id ? 'Update' : 'Save'">
-                        </button>
-                        <button @click="activeView = 'repeat'"
-                            class="px-4 py-2.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 rounded font-medium text-sm transition-colors">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
+                                <!-- Search Text Input -->
+                                <div class="flex flex-col flex-1 min-w-0">
+                                    <input type="text" x-model="counter.text" @input="saveCounters()"
+                                        placeholder="Text to count..."
+                                        class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 w-full"
+                                        @keydown.enter="$el.blur()">
 
-                <!-- Project Settings View -->
-                <div x-show="activeView === 'settings'" class="flex flex-col h-full">
-                    <!-- Header -->
-                    <div class="p-4 border-b border-gray-200 dark:border-slate-700">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Project Settings
-                        </h2>
-                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Application configuration
-                        </p>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto p-3 space-y-3">
-                        <!-- Theme Toggle -->
-                        <div
-                            class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                            <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                Appearance
-                            </label>
-                            <button @click="toggleTheme()"
-                                class="w-full flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors">
-                                <span class="text-xs text-gray-700 dark:text-slate-300 font-medium">Theme
-                                    Mode</span>
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-xs text-gray-500 dark:text-slate-400"
-                                        x-text="theme === 'dark' ? 'Dark' : 'Light'"></span>
-                                    <div class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                                        :class="theme === 'dark' ? 'bg-indigo-600' : 'bg-gray-300'">
-                                        <span
-                                            class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                            :class="theme === 'dark' ? 'translate-x-4' : 'translate-x-0'"></span>
+                                    <!-- Session Select -->
+                                    <div class="flex items-center gap-1">
+                                        <select x-model="counter.sessionId" @change="saveCounters()"
+                                            class="bg-transparent border-none focus:ring-0 text-[10px] text-gray-500 dark:text-slate-400 p-0 leading-tight appearance-none cursor-pointer hover:text-indigo-500 max-w-[100px] truncate">
+                                            <option value="all">All Sessions</option>
+                                            <template x-for="s in sessions" :key="s.id">
+                                                <option :value="s.id" x-text="s.port"></option>
+                                            </template>
+                                        </select>
                                     </div>
                                 </div>
-                            </button>
-                        </div>
 
-                    </div>
-                </div>
+                                <!-- Count Badge -->
+                                <div @click="resetCounter(counter.id)" title="Click to reset counter"
+                                    class="px-2.5 py-1 bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black rounded-lg w-[60px] flex-shrink-0 text-center transition-all duration-300 cursor-pointer hover:bg-rose-500 hover:text-white"
+                                    style="font-variant-numeric: tabular-nums;"
+                                    :class="counter.justUpdated ? 'bg-emerald-500 !text-white scale-110 shadow-[0_0_12px_rgba(16,185,129,0.4)]' : ''"
+                                    x-text="Number(counter.count).toLocaleString()">
+                                </div>
 
-                <!-- Connection View -->
-                <div x-show="activeView === 'connection'" class="flex flex-col h-full">
-                    <!-- Header -->
-                    <div class="p-4 border-b border-gray-200 dark:border-slate-700">
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Connection</h2>
-                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage terminal connections
-                        </p>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto p-3 space-y-3">
-                        <!-- Connection Mode -->
-                        <div
-                            class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                            <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                Connection Mode
-                            </label>
-                            <div class="flex space-x-2 bg-gray-100 dark:bg-slate-900 p-1 rounded-md">
-                                <button @click="connectionMode = 'serial'"
-                                    class="flex-1 py-1.5 rounded text-xs font-medium transition-all duration-200"
-                                    :class="connectionMode === 'serial' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-300'">
-                                    Serial
-                                </button>
-                                <button @click="connectionMode = 'telnet'"
-                                    class="flex-1 py-1.5 rounded text-xs font-medium transition-all duration-200"
-                                    :class="connectionMode === 'telnet' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-300'">
-                                    Telnet
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Serial Settings -->
-                        <div x-show="connectionMode === 'serial'" class="space-y-3">
-                            <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                    Serial Port
-                                </label>
-                                <div class="flex space-x-2 mb-2">
-                                    <select x-model="selectedPort" @keydown.enter="saveSettings()"
-                                        class="flex-1 px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
-                                        :disabled="loadingPorts">
-                                        <option value="">Select a port...</option>
-                                        <template x-for="port in availablePorts" :key="port.device">
-                                            <option :value="port.device"
-                                                x-text="port.device + ' - ' + (port.description || 'Unknown')">
-                                            </option>
-                                        </template>
-                                    </select>
-                                    <button @click="loadPorts()"
-                                        class="px-2 py-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 rounded text-xs font-medium text-gray-600 dark:text-slate-300"
-                                        :disabled="loadingPorts">
-                                        <svg x-show="loadingPorts" class="w-3 h-3 animate-spin" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
+                                <!-- Actions -->
+                                <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="deleteCounter(counter.id)" title="Delete counter"
+                                        class="p-1 text-gray-400 hover:text-rose-500 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7M10 11v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m4 0H10">
                                             </path>
                                         </svg>
-                                        <span x-show="!loadingPorts">↻</span>
                                     </button>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] text-gray-500 dark:text-slate-400 mb-1 font-medium">
-                                        Or enter manually:
-                                    </label>
-                                    <input type="text" x-model="manualPort"
-                                        @input="if(manualPort) selectedPort = manualPort"
-                                        @keydown.enter="saveSettings()" placeholder="/dev/pts/12"
-                                        class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
-                                </div>
                             </div>
+                        </template>
+                    </div>
 
-                            <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                    Baud Rate
-                                </label>
-                                <select x-model="baudRate" @keydown.enter="saveSettings()" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 
-                                    focus:outline-none focus:ring-1 focus:ring-indigo-500 
-                                    focus:border-transparent">
-                                    <option value="9600">9600</option>
-                                    <option value="19200">19200</option>
-                                    <option value="38400">38400</option>
-                                    <option value="57600">57600</option>
-                                    <option value="115200" selected>115200</option>
-                                    <option value="230400">230400</option>
-                                    <option value="460800">460800</option>
-                                    <option value="921600">921600</option>
-                                </select>
-                            </div>
-                        </div>
+                    <!-- Add Counter Button (Right Side) -->
+                    <div class="flex items-center shrink-0 pt-3">
+                        <button @click="addCounter()"
+                            class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                            title="Add Counter (counts occurrences of text in terminal)">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-                        <!-- Telnet Settings -->
-                        <div x-show="connectionMode === 'telnet'" class="space-y-3">
-                            <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                    Host
-                                </label>
-                                <input type="text" x-model="telnetHost" @keydown.enter="saveSettings()"
-                                    placeholder="localhost or 192.168.1.100"
-                                    class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
-                            </div>
-                            <div
-                                class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
-                                <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                    Port
-                                </label>
-                                <input type="number" x-model="telnetPort" @keydown.enter="saveSettings()"
-                                    placeholder="23"
-                                    class="w-full px-2 py-1.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded text-xs text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent font-mono">
-                            </div>
-                        </div>
+            <!-- Custom Command Modal -->
+            <div x-show="showCustomCommandModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak
+                style="display: none;">
+                <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                    <!-- Overlay -->
+                    <div x-show="showCustomCommandModal" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0"
+                        class="fixed inset-0 transition-opacity bg-gray-900/75 backdrop-blur-sm"
+                        @click="closeCustomCommandModal()"></div>
 
-                        <div x-show="statusMessage" class="p-2 rounded-md border text-xs"
-                            :class="statusMessageType === 'error' ? 'bg-rose-900/30 border-rose-700 text-rose-300' : 'bg-emerald-900/30 border-emerald-700 text-emerald-300'">
-                            <div class="flex items-start">
-                                <svg x-show="statusMessageType === 'error'" class="w-4 h-4 mr-1.5 flex-shrink-0"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <svg x-show="statusMessageType !== 'error'" class="w-4 h-4 mr-1.5 flex-shrink-0"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span class="font-medium" x-text="statusMessage"></span>
-                            </div>
-                        </div>
+                    <!-- Modal Window -->
+                    <div x-show="showCustomCommandModal" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave="ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        class="inline-block w-full max-w-lg overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-slate-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle">
 
-                        <div class="mt-4">
-                            <button @click="saveSettings()" :disabled="connecting"
-                                class="w-full flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg shadow-md transition-all duration-200">
-                                <!-- Loading Spinner -->
-                                <svg x-show="connectButtonState === 'connecting'"
-                                    class="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
-                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                        stroke-width="4">
-                                    </circle>
-                                    <path class="opacity-75" fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                    </path>
-                                </svg>
-                                <!-- Connect Icon -->
-                                <svg x-show="connectButtonState === 'connect'" class="w-4 h-4 mr-2" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                <!-- Switch Icon -->
-                                <svg x-show="connectButtonState === 'switch'" class="w-4 h-4 mr-2" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                </svg>
-                                <!-- Disconnect Icon -->
-                                <svg x-show="connectButtonState === 'disconnect'" class="w-4 h-4 mr-2" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                        <div
+                            class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between bg-gray-50/50 dark:bg-slate-750/50">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white"
+                                x-text="customCommandModalData.id ? 'Edit Custom Command' : 'Add Custom Command'"></h3>
+                            <button @click="closeCustomCommandModal()"
+                                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
-                                <span x-text="{
-                                    'connecting': 'Connecting...',
-                                    'connect': 'Connect',
-                                    'switch': 'Switch to Tab',
-                                    'disconnect': 'Disconnect'
-                                }[connectButtonState]"></span>
                             </button>
                         </div>
-                    </div>
-                </div>
-            </aside>
 
-            <!-- Tab Bar and Terminal Container -->
-            <!-- Multi-Pane Terminal Layout -->
-            <div class="flex-1 flex bg-gray-100 dark:bg-slate-900 overflow-hidden relative transition-colors duration-200"
-                :class="layoutGroups.length > 1 ? 'flex-row' : 'flex-col'">
-                <template x-for="(group, gIdx) in layoutGroups" :key="group.id">
-                    <div class="flex-1 flex flex-col border-r border-gray-200 dark:border-slate-700 last:border-r-0 relative group"
-                        @dragover="handleDragOver($event, group.id)" @dragleave="handleDragLeave()"
-                        @drop="handleDrop($event, group.id)">
+                        <div class="px-6 py-6 space-y-5">
+                            <!-- Command Name -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Command
+                                    Name</label>
+                                <input type="text" x-model="customCommandModalData.name" placeholder="e.g. status"
+                                    class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono">
+                            </div>
 
-                        <!-- Drop Zone Indicators -->
-                        <div x-show="dragOverGroupId === group.id && dragOverPosition === 'left'"
-                            class="absolute inset-y-0 left-0 w-1/4 bg-indigo-500/20 border-l-2 border-indigo-500 z-50 pointer-events-none">
-                        </div>
-                        <div x-show="dragOverGroupId === group.id && dragOverPosition === 'right'"
-                            class="absolute inset-y-0 right-0 w-1/4 bg-indigo-500/20 border-r-2 border-indigo-500 z-50 pointer-events-none">
-                        </div>
-                        <div x-show="dragOverGroupId === group.id && dragOverPosition === 'top'"
-                            class="absolute inset-x-0 top-0 h-1/4 bg-indigo-500/20 border-t-2 border-indigo-500 z-50 pointer-events-none">
-                        </div>
-                        <div x-show="dragOverGroupId === group.id && dragOverPosition === 'bottom'"
-                            class="absolute inset-x-0 bottom-0 h-1/4 bg-indigo-500/20 border-b-2 border-indigo-500 z-50 pointer-events-none">
-                        </div>
-                        <div x-show="dragOverGroupId === group.id && dragOverPosition === 'center'"
-                            class="absolute inset-0 bg-indigo-500/10 z-40 pointer-events-none"></div>
+                            <!-- Description -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
+                                <input type="text" x-model="customCommandModalData.description"
+                                    placeholder="Short description of what the command does"
+                                    class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            </div>
 
-
-                        <!-- Pane Tab Bar -->
-                        <div x-show="group.sessionIds.length > 0"
-                            class="flex bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors duration-200"
-                            @dragover.stop="handleDragOver($event, group.id, 'center')">
-                            <template x-for="sid in group.sessionIds" :key="sid">
-                                <div draggable="true" @dragstart="handleDragStart(sid)" @dragend="handleDragEnd()"
-                                    @click="switchSession(sid, group.id)"
-                                    :class="group.activeSessionId === sid ? 'bg-white dark:bg-slate-900 border-t-2 border-indigo-500 text-gray-900 dark:text-white shadow-sm' : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-750 hover:text-gray-700 dark:hover:text-slate-200 border-t-2 border-transparent border-r border-gray-200 dark:border-slate-700'"
-                                    class="flex items-center px-4 py-2 text-sm cursor-pointer transition-colors whitespace-nowrap min-w-[120px] max-w-[200px] z-10">
-                                    <span class="flex-1 truncate"
-                                        x-text="sessions.find(s => s.id === sid)?.port || 'Unknown'"></span>
-                                    <button @click.stop="closeSession(sid, group.id)"
-                                        class="p-1 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
+                            <!-- Arguments -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label
+                                        class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Arguments</label>
+                                    <button @click="addCustomCommandArg()"
+                                        class="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 uppercase tracking-tighter transition-colors">
+                                        + Add Argument
                                     </button>
                                 </div>
-                            </template>
 
-                            <!-- Split Buttons (Visible on hover) -->
-                            <div
-                                class="ml-auto flex items-center px-2 space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button @click="splitGroup(group.activeSessionId, 'right')" title="Split Right"
-                                    class="p-1 text-slate-500 hover:text-slate-300 rounded hover:bg-slate-700">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5l7 7-7 7"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                                <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    <template x-for="(arg, index) in customCommandModalData.args" :key="arg.id">
+                                        <div
+                                            class="flex items-center gap-2 bg-gray-50 dark:bg-slate-900/50 p-2 rounded-lg border border-gray-100 dark:border-slate-700 group">
+                                            <input type="text" x-model="arg.name" placeholder="Arg Name"
+                                                class="flex-1 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded text-[11px] text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
 
-                        <!-- Pane Terminal Container -->
-                        <div
-                            class="flex-1 relative overflow-hidden bg-white dark:bg-slate-900 transition-colors duration-200">
-                            <template x-for="sid in group.sessionIds" :key="sid">
-                                <div x-show="group.activeSessionId === sid" :id="'terminal-' + sid"
-                                    class="absolute inset-0 w-full h-full"></div>
-                            </template>
+                                            <label class="flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" x-model="arg.required"
+                                                    class="rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                                                <span class="text-[10px] text-gray-500 dark:text-slate-400">Req.</span>
+                                            </label>
 
-                            <!-- Internal Empty State (Should rarely happen) -->
-                            <div x-show="group.sessionIds.length === 0 && sessions.length > 0"
-                                class="flex items-center justify-center h-full text-gray-400 dark:text-slate-600 italic text-xs">
-                                No sessions in this pane
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Empty State (No Panes) -->
-                <div x-show="layoutGroups.length === 0"
-                    class="flex flex-col items-center justify-center h-full w-full text-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
-                    <p>No active terminals</p>
-                    <button @click="resetLayout()"
-                        class="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 text-sm mt-2">
-                        Reset Layout
-                    </button>
-                </div>
-                <!-- Global Empty State -->
-                <div x-show="sessions.length === 0"
-                    class="flex flex-col items-center justify-center h-full w-full text-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
-                    <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
-                        </path>
-                    </svg>
-                    <p class="text-xl font-medium">No Active Sessions</p>
-                    <p class="text-sm mt-2">Connect in the <button @click="activeView = 'connection'"
-                            class="text-indigo-500 hover:text-indigo-600 font-medium">connection panel</button> to get
-                        started</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Custom Command Modal -->
-        <div x-show="showCustomCommandModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak
-            style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div x-show="showCustomCommandModal" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                    x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                    class="fixed inset-0 transition-opacity bg-gray-900/75 backdrop-blur-sm"
-                    @click="closeCustomCommandModal()"></div>
-
-                <!-- Modal Window -->
-                <div x-show="showCustomCommandModal" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="inline-block w-full max-w-lg overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-slate-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle">
-
-                    <div
-                        class="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between bg-gray-50/50 dark:bg-slate-750/50">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white"
-                            x-text="customCommandModalData.id ? 'Edit Custom Command' : 'Add Custom Command'"></h3>
-                        <button @click="closeCustomCommandModal()"
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div class="px-6 py-6 space-y-5">
-                        <!-- Command Name -->
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Command
-                                Name</label>
-                            <input type="text" x-model="customCommandModalData.name" placeholder="e.g. status"
-                                class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono">
-                        </div>
-
-                        <!-- Description -->
-                        <div>
-                            <label
-                                class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
-                            <input type="text" x-model="customCommandModalData.description"
-                                placeholder="Short description of what the command does"
-                                class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg text-sm text-gray-900 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                        </div>
-
-                        <!-- Arguments -->
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label
-                                    class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Arguments</label>
-                                <button @click="addCustomCommandArg()"
-                                    class="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 uppercase tracking-tighter transition-colors">
-                                    + Add Argument
-                                </button>
-                            </div>
-
-                            <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                <template x-for="(arg, index) in customCommandModalData.args" :key="arg.id">
-                                    <div
-                                        class="flex items-center gap-2 bg-gray-50 dark:bg-slate-900/50 p-2 rounded-lg border border-gray-100 dark:border-slate-700 group">
-                                        <input type="text" x-model="arg.name" placeholder="Arg Name"
-                                            class="flex-1 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded text-[11px] text-gray-900 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none">
-
-                                        <label class="flex items-center gap-1 cursor-pointer">
-                                            <input type="checkbox" x-model="arg.required"
-                                                class="rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500">
-                                            <span class="text-[10px] text-gray-500 dark:text-slate-400">Req.</span>
-                                        </label>
-
-                                        <button @click="removeCustomCommandArg(index)"
-                                            class="text-gray-400 hover:text-rose-500 transition-colors p-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m4 0H10">
-                                                </path>
-                                            </svg>
-                                        </button>
+                                            <button @click="removeCustomCommandArg(index)"
+                                                class="text-gray-400 hover:text-rose-500 transition-colors p-1">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v2m4 0H10">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <div x-show="customCommandModalData.args.length === 0"
+                                        class="text-center py-4 border-2 border-dashed border-gray-100 dark:border-slate-700/50 rounded-lg">
+                                        <span class="text-[10px] text-gray-400 dark:text-slate-500">No arguments
+                                            defined</span>
                                     </div>
-                                </template>
-                                <div x-show="customCommandModalData.args.length === 0"
-                                    class="text-center py-4 border-2 border-dashed border-gray-100 dark:border-slate-700/50 rounded-lg">
-                                    <span class="text-[10px] text-gray-400 dark:text-slate-500">No arguments
-                                        defined</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div
-                        class="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-gray-200 dark:border-slate-700">
-                        <button @click="saveCustomCommand()"
-                            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all">
-                            Save Command
-                        </button>
-                        <button @click="closeCustomCommandModal()"
-                            class="px-5 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-bold hover:bg-gray-50 dark:hover:bg-slate-600 transition-all">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- About Modal -->
-        <div x-show="showAbout" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak style="display: none;">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div x-show="showAbout" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                    class="fixed inset-0 transition-opacity bg-gray-900/75 backdrop-blur-sm" @click="showAbout = false">
-                </div>
-
-                <div x-show="showAbout" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave="ease-in duration-200"
-                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="inline-block w-full max-w-md overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-slate-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle">
-
-                    <div class="px-6 py-10 text-center">
                         <div
-                            class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mx-auto mb-6 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                </path>
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Zephyr Device Manager</h3>
-                        <p class="text-sm text-indigo-500 font-semibold mb-6" x-text="appVersion.full_version"></p>
-
-                        <div class="space-y-4 text-sm text-gray-600 dark:text-slate-400">
-                            <p>A modern, lightweight desktop interface for managing Zephyr RTOS devices via Serial or
-                                Telnet transport.</p>
-                            <div
-                                class="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg border border-gray-100 dark:border-slate-700 inline-block text-left w-full">
-                                <div class="flex justify-between mb-1">
-                                    <span class="font-medium text-gray-900 dark:text-slate-300">Version:</span>
-                                    <span class="font-mono" x-text="appVersion.version"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="font-medium text-gray-900 dark:text-slate-300">License:</span>
-                                    <span>MIT</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-8">
-                            <button @click="showAbout = false"
-                                class="w-full py-3 bg-gray-900 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white font-bold rounded-lg transition-all focus:ring-4 focus:ring-gray-400/20">
-                                Close
+                            class="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 flex flex-row-reverse gap-3 border-t border-gray-200 dark:border-slate-700">
+                            <button @click="saveCustomCommand()"
+                                class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all">
+                                Save Command
+                            </button>
+                            <button @click="closeCustomCommandModal()"
+                                class="px-5 py-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 rounded-lg text-sm font-bold hover:bg-gray-50 dark:hover:bg-slate-600 transition-all">
+                                Cancel
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- About Modal -->
+            <div x-show="showAbout" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak style="display: none;">
+                <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                    <div x-show="showAbout" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0"
+                        class="fixed inset-0 transition-opacity bg-gray-900/75 backdrop-blur-sm"
+                        @click="showAbout = false">
+                    </div>
+
+                    <div x-show="showAbout" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave="ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        class="inline-block w-full max-w-md overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-slate-800 rounded-xl shadow-2xl sm:my-8 sm:align-middle">
+
+                        <div class="px-6 py-10 text-center">
+                            <div
+                                class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl mx-auto mb-6 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
+                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Zephyr Device Manager</h3>
+                            <p class="text-sm text-indigo-500 font-semibold mb-6" x-text="appVersion.full_version"></p>
+
+                            <div class="space-y-4 text-sm text-gray-600 dark:text-slate-400">
+                                <p>A modern, lightweight desktop interface for managing Zephyr RTOS devices via Serial
+                                    or
+                                    Telnet transport.</p>
+                                <div
+                                    class="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg border border-gray-100 dark:border-slate-700 inline-block text-left w-full">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-medium text-gray-900 dark:text-slate-300">Version:</span>
+                                        <span class="font-mono" x-text="appVersion.version"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="font-medium text-gray-900 dark:text-slate-300">License:</span>
+                                        <span>MIT</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-8">
+                                <button @click="showAbout = false"
+                                    class="w-full py-3 bg-gray-900 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white font-bold rounded-lg transition-all focus:ring-4 focus:ring-gray-400/20">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 </body>
 
 </html>
