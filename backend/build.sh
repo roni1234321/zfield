@@ -4,8 +4,8 @@
 echo "Building Zephyr Device Manager executable..."
 
 # Activate virtual environment if it exists
-if [ -f venv/bin/activate ]; then
-    source venv/bin/activate
+if [ -f .venv/bin/activate ]; then
+    source .venv/bin/activate
 fi
 
 # Install PyInstaller if not already installed
