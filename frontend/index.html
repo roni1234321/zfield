@@ -1193,12 +1193,7 @@
 
                         <!-- Empty State (No Panes) -->
                         <div x-show="layoutGroups.length === 0"
-                            class="flex flex-col items-center justify-center h-full w-full text-gray-500 dark:text-slate-500 bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
-                            <p>No active terminals</p>
-                            <button @click="resetLayout()"
-                                class="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 text-sm mt-2">
-                                Reset Layout
-                            </button>
+                            class="flex flex-col items-center justify-center h-full w-full bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
                         </div>
                         <!-- Global Empty State -->
                         <div x-show="sessions.length === 0"
@@ -1490,4 +1485,3 @@
 </body>
 
 </html>
-```
