@@ -95,6 +95,7 @@ function terminalApp() {
         showCounters: true,
         counterPanelHeight: 'normal', // 'normal' or 'large'
         lastCounterUpdate: {}, // Store session-specific last chunks for split-text matching
+        showWelcomeModal: false,
 
         // Initialize application (Now handles status checks/port loading)
         async init() {
@@ -139,6 +140,11 @@ function terminalApp() {
 
             // Load counters
             this.loadCounters();
+
+            // Welcome Modal for first timers
+            if (!localStorage.getItem('zdm_welcome_shown')) {
+                this.showWelcomeModal = true;
+            }
 
             // Load saved view
             const savedView = localStorage.getItem('zdm_active_view');
@@ -255,6 +261,11 @@ function terminalApp() {
                 this.saveCounters();
                 this.showStatus('All counters reset', 'success');
             }
+        },
+
+        closeWelcomeModal() {
+            this.showWelcomeModal = false;
+            localStorage.setItem('zdm_welcome_shown', 'true');
         },
 
         updateCounters(sessionId, rawData) {
