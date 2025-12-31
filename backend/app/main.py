@@ -31,21 +31,14 @@ else:
     # Running as script
     frontend_path = Path(__file__).parent.parent.parent / "frontend"
 if frontend_path.exists():
-    # Serve JS files
-    js_path = frontend_path / "js"
-    if js_path.exists():
-        app.mount("/js", StaticFiles(directory=js_path), name="js")
-    
-    # Serve CSS files
-    css_path = frontend_path / "css"
-    if css_path.exists():
-        app.mount("/css", StaticFiles(directory=css_path), name="css")
-    
-    # Serve other static assets
-    assets_path = frontend_path / "assets"
-    if assets_path.exists():
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
-    
+    @app.get("/favicon.ico")
+    async def favicon():
+        """Serve favicon.ico by returning logo.png."""
+        logo_path = frontend_path / "logo.png"
+        if logo_path.exists():
+            return FileResponse(logo_path)
+        return {"message": "Logo not found"}
+
     @app.get("/")
     async def read_root():
         """Serve frontend index page."""
@@ -53,6 +46,10 @@ if frontend_path.exists():
         if index_path.exists():
             return FileResponse(index_path)
         return {"message": "Frontend not found"}
+
+    # Serve the entire frontend directory (js, css, logo.png, etc.)
+    # Mount this last so it doesn't shadow the API or explicit routes
+    app.mount("/", StaticFiles(directory=frontend_path), name="frontend")
 
 @app.get("/health")
 async def health():
