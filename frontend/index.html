@@ -449,16 +449,41 @@
                                     <p class="text-xs text-gray-500 dark:text-slate-500 mt-1">Scan to discover</p>
                                 </div>
 
-                                <!-- Commands List (Flat Hierarchy) -->
-                                <div x-show="!loadingCommands && flattenedCommands.length > 0 && !selectedCommand"
-                                    class="space-y-1">
-                                    <template x-for="cmd in flattenedCommands"
-                                        :key="cmd.id || (cmd.fullName || cmd.name)">
-                                        <div class="border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-750/50 transition-all duration-200"
-                                            :class="expandedCommandId === (cmd.id || (cmd.fullName || cmd.name)) ? 'ring-1 ring-indigo-500 shadow-md' : 'hover:bg-gray-50 dark:hover:bg-slate-750'">
+                                <!-- Commands List (Flat Reorderable) -->
+                                <div x-show="!loadingCommands && commands.length > 0 && !selectedCommand"
+                                    class="space-y-1 relative" @dragover.prevent=""
+                                    @dragend.window="draggedCommandId = null; dragOverCommandId = null"
+                                    @dragleave.self="dragOverCommandId = null">
+                                    <template x-for="(cmd, index) in commands"
+                                        :key="(cmd.id || cmd.fullName || cmd.name) + '_' + index">
+                                        <div class="border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-750/50 transition-all duration-300 relative group"
+                                            :class="{
+                                                'ring-1 ring-indigo-500 shadow-md': expandedCommandId === (cmd.id || (cmd.fullName || cmd.name)),
+                                                'opacity-30 grayscale scale-[0.98]': draggedCommandId === (cmd.id || (cmd.fullName || cmd.name)),
+                                                'bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30': recentlyMovedCommandId === (cmd.id || (cmd.fullName || cmd.name)),
+                                                'hover:bg-gray-50 dark:hover:bg-slate-750': draggedCommandId !== (cmd.id || (cmd.fullName || cmd.name)) && recentlyMovedCommandId !== (cmd.id || (cmd.fullName || cmd.name))
+                                            }" draggable="true"
+                                            @dragstart="draggedCommandId = (cmd.id || (cmd.fullName || cmd.name)); event.dataTransfer.setData('text/plain', (cmd.id || (cmd.fullName || cmd.name)))"
+                                            @dragenter="if (draggedCommandId !== (cmd.id || (cmd.fullName || cmd.name))) dragOverCommandId = (cmd.id || (cmd.fullName || cmd.name))"
+                                            @drop="moveCommand(draggedCommandId, (cmd.id || (cmd.fullName || cmd.name))); draggedCommandId = null; dragOverCommandId = null">
+
+                                            <!-- Drop Indicator Line -->
+                                            <div x-show="dragOverCommandId === (cmd.id || (cmd.fullName || cmd.name)) && draggedCommandId !== (cmd.id || (cmd.fullName || cmd.name))"
+                                                class="absolute -top-[1.5px] left-0 right-0 h-0.5 bg-gray-300 dark:bg-white z-[60] pointer-events-none rounded-full">
+                                            </div>
 
                                             <!-- Command Header Row -->
                                             <div class="flex items-center p-1.5 gap-1.5">
+                                                <!-- Drag Handle -->
+                                                <div
+                                                    class="cursor-grab active:cursor-grabbing p-0.5 text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            d="M7 7a2 2 0 100-4 2 2 0 000 4zM7 11a2 2 0 100-4 2 2 0 000 4zM7 15a2 2 0 100-4 2 2 0 000 4zM13 7a2 2 0 100-4 2 2 0 000 4zM13 11a2 2 0 100-4 2 2 0 000 4zM13 15a2 2 0 100-4 2 2 0 000 4z">
+                                                        </path>
+                                                    </svg>
+                                                </div>
+
                                                 <!-- Action Panel Toggle -->
                                                 <button @click="toggleCommandExpansion(cmd)"
                                                     class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">

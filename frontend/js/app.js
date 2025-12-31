@@ -34,6 +34,8 @@ function terminalApp() {
         draggedIconId: null,
         dragOverIconId: null,
         expandedCommandId: null, // ID of the command whose actions are currently expanded
+        dragOverCommandId: null, // ID of the command being dragged over
+        recentlyMovedCommandId: null, // ID of the command that was just moved
 
 
         // Toolbar State
@@ -1736,31 +1738,25 @@ function terminalApp() {
         mergeDiscoveredCommands(newCommands) {
             newCommands.forEach(newCmd => {
                 // Determine if it exists (match by id or name)
-                const existingIdx = this.commands.findIndex(c => c.id === newCmd.id || c.name === newCmd.name);
-
                 if (existingIdx !== -1) {
                     const existing = this.commands[existingIdx];
-                    if (existing.userModified) {
-                        // Keep modified values but sync internal structure if needed
-                        // (e.g. keep subcommands reference so we can update it later)
-                        // existing.subcommands remains
-                    } else {
-                        // Just update everything except UI state like expansion
-                        const expanded = existing.expanded;
-                        const subcommands = existing.subcommands;
-                        this.commands[existingIdx] = { ...newCmd, expanded, subcommands };
+                    if (!existing.userModified) {
+                        // Update properties but keep ID and position
+                        const { expanded, ...rest } = newCmd;
+                        this.commands[existingIdx] = { ...existing, ...rest };
                     }
                 } else {
                     // New command found
                     this.commands.push({
                         ...newCmd,
                         expanded: false,
-                        subcommands: null
+                        isRoot: true
                     });
                 }
             });
             this.saveCachedCommands(this.commands);
         },
+
 
         // Scan and discover commands
         async scanCommands(force = false) {
@@ -1870,43 +1866,35 @@ function terminalApp() {
                 const subcommands = await this.discoverSubcommandsInternal(command);
 
                 if (subcommands && subcommands.length > 0) {
-                    // Flattening: Add subcommands directly to the parent's subcommands list
-                    // If this is a deep subcommand, it still goes into the top-level command's subcommands list
-                    // to keep the UI flat as requested.
+                    // Flattening: Add subcommands directly to the flat list
+                    const parentIdx = this.commands.findIndex(c => c.id === command.id || (c.fullName === command.fullName));
 
-                    // Find the top-level parent
-                    let topLevelCmd = command;
-                    while (topLevelCmd.parentCmd) {
-                        topLevelCmd = topLevelCmd.parentCmd;
-                    }
+                    for (let j = 0; j < subcommands.length; j++) {
+                        const sub = subcommands[j];
 
-                    if (!topLevelCmd.subcommands) topLevelCmd.subcommands = [];
+                        // Check if already exists in flat list
+                        const existingIdx = this.commands.findIndex(c => c.fullName === sub.fullName);
 
-                    for (const sub of subcommands) {
-                        // Link back for recursion
-                        sub.parentCmd = command;
-
-                        // Calculate display name relative to top-level command
-                        // e.g. if top-level is 'shell' and this is 'shell echo off', name = 'echo off'
-                        if (sub.fullName) {
-                            const topLevelName = topLevelCmd.name;
-                            if (sub.fullName.startsWith(topLevelName + ' ')) {
-                                sub.name = sub.fullName.substring(topLevelName.length + 1).trim();
-                            }
-                        }
-
-                        // Add to top-level list if not already there (by fullName)
-                        if (!topLevelCmd.subcommands.find(s => s.fullName === sub.fullName)) {
-                            topLevelCmd.subcommands.push(sub);
+                        if (existingIdx === -1) {
+                            // Insert after parent (or after previous sibling)
+                            const insertAt = (parentIdx !== -1) ? parentIdx + j + 1 : this.commands.length;
+                            this.commands.splice(insertAt, 0, {
+                                ...sub,
+                                isRoot: false,
+                                parentName: command.name
+                            });
+                        } else {
+                            // Update existing
+                            this.commands[existingIdx] = { ...this.commands[existingIdx], ...sub };
                         }
 
                         // Recurse into this subcommand
                         await this.discoverDeep(sub);
                     }
 
-                    topLevelCmd.hasSubcommands = true;
                     this.saveCachedCommands(this.commands);
                 }
+
             } catch (error) {
                 console.error(`Error in deep discovery for ${command.fullName || command.name}:`, error);
             } finally {
@@ -1929,35 +1917,37 @@ function terminalApp() {
         getDirectSubcommands(command) {
             if (!command || command.isCustom) return [];
 
-            // Find top-level parent to look in its flattened subcommands list
-            let topLevel = command;
-            while (topLevel.parentCmd) {
-                topLevel = topLevel.parentCmd;
+            // Filter from the flat list based on parentName
+            const parentName = command.name;
+            return this.commands.filter(s => s.parentName === parentName);
+        },
+
+        // Helper to reorder commands
+        moveCommand(fromId, toId) {
+            if (fromId === toId) return;
+
+            const fromIdx = this.commands.findIndex(c => (c.id || c.fullName) === fromId);
+            const toIdx = this.commands.findIndex(c => (c.id || c.fullName) === toId);
+
+            if (fromIdx !== -1 && toIdx !== -1) {
+                const [moved] = this.commands.splice(fromIdx, 1);
+                this.commands.splice(toIdx, 0, moved);
+                this.saveCachedCommands(this.commands);
+
+                // Highlight the moved command
+                this.recentlyMovedCommandId = fromId;
+                setTimeout(() => {
+                    if (this.recentlyMovedCommandId === fromId) {
+                        this.recentlyMovedCommandId = null;
+                    }
+                }, 2000);
             }
-
-            const parentFullName = (command.fullName || command.name).trim();
-            return (topLevel.subcommands || []).filter(s => s.parent === parentFullName);
         },
 
-        // New helper to get all commands in a single flat array for the UI
-        get flattenedCommands() {
-            let list = [];
-            this.commands.forEach(cmd => {
-                // Add the top-level command
-                list.push({ ...cmd, isRoot: true });
 
-                // Add any subcommands if they exist
-                if (cmd.subcommands && cmd.subcommands.length > 0) {
-                    cmd.subcommands.forEach(sub => {
-                        list.push({ ...sub, isRoot: false, parentName: cmd.name });
-                    });
-                }
-            });
-
-            // Sort? Maybe by name or grouped by parent?
-            // For now, let's keep them as they are discovered (usually grouped by parent)
-            return list;
-        },
+        // Drag and drop state
+        draggedCommand: null,
+        dragOverCommand: null,
 
 
         getCommandUsage(command) {
@@ -2241,34 +2231,27 @@ function terminalApp() {
 
                 if (newSubcommands.length > 0) {
                     // Update command with subcommands (Merge logic)
-                    if (!command.subcommands) command.subcommands = [];
+                    const parentIdx = this.commands.findIndex(c => c.id === command.id);
 
-                    newSubcommands.forEach(ns => {
-                        const existingIdx = command.subcommands.findIndex(s => s.name === ns.name);
+                    newSubcommands.forEach((ns, idx) => {
+                        const existingIdx = this.commands.findIndex(s => s.fullName === ns.fullName);
                         if (existingIdx !== -1) {
-                            const existing = command.subcommands[existingIdx];
+                            const existing = this.commands[existingIdx];
                             if (!existing.userModified) {
-                                command.subcommands[existingIdx] = { ...ns, expanded: existing.expanded };
+                                this.commands[existingIdx] = { ...ns, isRoot: false, parentName: command.name };
                             }
                         } else {
-                            command.subcommands.push(ns);
+                            // Insert after parent
+                            const insertAt = (parentIdx !== -1) ? parentIdx + idx + 1 : this.commands.length;
+                            this.commands.splice(insertAt, 0, { ...ns, isRoot: false, parentName: command.name });
                         }
                     });
-
-                    command.hasSubcommands = true;
-
-                    // Update in commands array
-                    const cmdIndex = this.commands.findIndex(c => c.id === command.id);
-                    if (cmdIndex !== -1) {
-                        this.commands[cmdIndex] = command;
-                    }
 
                     // Save updated cache
                     this.saveCachedCommands(this.commands);
 
                     this.showStatus(`Synced ${newSubcommands.length} subcommands for ${command.name}`, 'success');
                 } else {
-                    command.hasSubcommands = false;
                     this.showStatus(`No subcommands found for ${command.name}`, 'info');
                 }
             } catch (error) {
