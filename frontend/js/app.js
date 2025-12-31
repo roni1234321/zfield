@@ -33,6 +33,8 @@ function terminalApp() {
         ],
         draggedIconId: null,
         dragOverIconId: null,
+        expandedCommandId: null, // ID of the command whose actions are currently expanded
+
 
         // Toolbar State
         activeMenu: null,
@@ -140,6 +142,12 @@ function terminalApp() {
 
             // Load counters
             this.loadCounters();
+
+            // Explicitly expose flattenedCommands for Alpine to use as a reactive getter
+            // Alpine 2.x doesn't always handle ES6 getters in the returned object ideally, 
+            // but we can define it on 'this' or use a function.
+            // However, with this structure, a computed property approach is best.
+
 
             // Welcome Modal for first timers
             if (!localStorage.getItem('zdm_welcome_shown')) {
@@ -1931,6 +1939,27 @@ function terminalApp() {
             return (topLevel.subcommands || []).filter(s => s.parent === parentFullName);
         },
 
+        // New helper to get all commands in a single flat array for the UI
+        get flattenedCommands() {
+            let list = [];
+            this.commands.forEach(cmd => {
+                // Add the top-level command
+                list.push({ ...cmd, isRoot: true });
+
+                // Add any subcommands if they exist
+                if (cmd.subcommands && cmd.subcommands.length > 0) {
+                    cmd.subcommands.forEach(sub => {
+                        list.push({ ...sub, isRoot: false, parentName: cmd.name });
+                    });
+                }
+            });
+
+            // Sort? Maybe by name or grouped by parent?
+            // For now, let's keep them as they are discovered (usually grouped by parent)
+            return list;
+        },
+
+
         getCommandUsage(command) {
             if (!command) return '';
             if (command.usage) return command.usage;
@@ -2448,15 +2477,15 @@ function terminalApp() {
 
         // Toggle command expansion to show/hide subcommands
         toggleCommandExpansion(command) {
-            if (!this.expandedCommands[command.id]) {
-                // Expand: discover subcommands if not already discovered
-                if (!command.subcommands && command.hasSubcommands !== false) {
+            const id = command.id || (command.fullName || command.name);
+            if (this.expandedCommandId === id) {
+                this.expandedCommandId = null;
+            } else {
+                // Discover subcommands if it's a root command and hasn't been scanned
+                if (command.isRoot && !command.subcommands && command.hasSubcommands !== false) {
                     this.discoverSubcommands(command);
                 }
-                this.expandedCommands[command.id] = true;
-            } else {
-                // Collapse
-                this.expandedCommands[command.id] = false;
+                this.expandedCommandId = id;
             }
         },
 
