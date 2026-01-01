@@ -1981,6 +1981,7 @@ function terminalApp() {
         // Recursively discover subcommands for a command and its found children
         async discoverDeep(command) {
             if (this.discoveryCancelRequested) return;
+            if (this.discoveringSubcommands[command.id]) return;
 
             // Check for timeout
             if (!this.showDiscoveryConfirm && (Date.now() - this.discoveryStartTime > this.discoveryTimeoutThreshold)) {
@@ -2008,8 +2009,8 @@ function terminalApp() {
                     const firstLines = cleanText.split('\n').slice(0, 5).map(l => l.trim()).filter(l => l.length > 0);
 
                     const hasCategoryHeader = firstLines.some(line => {
-                        // Match "cmd - desc" or "cmd- desc"
-                        const regex = new RegExp(`^${cmdName}\\s*-`, 'i');
+                        // Match "cmd - desc" or "  cmd  - desc" (allowing for indentation)
+                        const regex = new RegExp(`^\\s*${cmdName}\\s*-`, 'i');
                         return regex.test(line);
                     });
 
@@ -2027,21 +2028,25 @@ function terminalApp() {
                         // Check if already exists in flat list
                         const existingIdx = this.commands.findIndex(c => c.fullName === sub.fullName);
 
+                        let subToRecurse = sub;
                         if (existingIdx === -1) {
                             // Insert after parent (or after previous sibling)
                             const insertAt = (parentIdx !== -1) ? parentIdx + j + 1 : this.commands.length;
-                            this.commands.splice(insertAt, 0, {
+                            const newSub = {
                                 ...sub,
                                 isRoot: false,
                                 parentName: command.name
-                            });
+                            };
+                            this.commands.splice(insertAt, 0, newSub);
+                            subToRecurse = newSub;
                         } else {
-                            // Update existing
+                            // Update existing and use it for recursion
                             this.commands[existingIdx] = { ...this.commands[existingIdx], ...sub };
+                            subToRecurse = this.commands[existingIdx];
                         }
 
-                        // Recurse into this subcommand
-                        await this.discoverDeep(sub);
+                        // Recurse into this subcommand using the reference in this.commands
+                        await this.discoverDeep(subToRecurse);
                     }
 
                     this.saveCachedCommands(this.commands);
