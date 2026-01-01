@@ -1924,6 +1924,7 @@ function terminalApp() {
                 this.loadingCommands = false;
                 this.commandDiscoveryInProgress = false;
                 this.discoveryLock = false;
+                this.discoveryProgress = { current: 0, total: 0 };
             }
         },
 
@@ -1932,11 +1933,14 @@ function terminalApp() {
             if (this.commands.length === 0) return;
 
             console.log(`Starting deep subcommand discovery for ${this.commands.length} top-level commands`);
+            this.discoveryProgress = { current: 0, total: this.commands.length };
 
             // We use a queue-like approach to discover all subcommands recursively
             // but we process them top-level first for better UX
             for (let i = 0; i < this.commands.length; i++) {
                 if (this.discoveryCancelRequested) break;
+
+                this.discoveryProgress.current = i + 1;
 
                 const cmd = this.commands[i];
                 // Skip discovery for custom commands created manually by the user
@@ -1944,7 +1948,7 @@ function terminalApp() {
 
                 await this.discoverDeep(cmd);
             }
-
+            this.discoveryProgress = { current: 0, total: 0 };
             console.log('Deep subcommand discovery complete');
         },
 
