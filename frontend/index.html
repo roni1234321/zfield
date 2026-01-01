@@ -522,12 +522,12 @@
 
                                                 <!-- Quick Execute -->
                                                 <button @click.stop="quickExecuteCommand(cmd)"
-                                                    class="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded transition-colors"
+                                                    class="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-md transition-all duration-200"
                                                     title="Execute">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
                                                         stroke-width="2.5" stroke-linecap="round"
                                                         stroke-linejoin="round" viewBox="0 0 24 24">
-                                                        <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                                                        <path d="M5 3l14 9-14 9V3z"></path>
                                                     </svg>
                                                 </button>
                                             </div>
@@ -551,7 +551,7 @@
                                                         <svg class="w-3.5 h-3.5 mb-1" fill="none" stroke="currentColor"
                                                             stroke-width="2.5" stroke-linecap="round"
                                                             stroke-linejoin="round" viewBox="0 0 24 24">
-                                                            <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                                                            <path d="M5 3l14 9-14 9V3z"></path>
                                                         </svg>
                                                         <span
                                                             class="text-[8px] font-bold uppercase tracking-wider">Send</span>
@@ -671,12 +671,14 @@
                                     </div>
 
                                     <div class="flex gap-2">
-                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor"
-                                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                            viewBox="0 0 24 24">
-                                            <polygon points="6 4 20 12 6 20 6 4"></polygon>
-                                        </svg>
-                                        Execute
+                                        <button @click="executeCommand(selectedCommand)"
+                                            class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-md shadow-sm text-xs">
+                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor"
+                                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                                viewBox="0 0 24 24">
+                                                <path d="M5 3l14 9-14 9V3z"></path>
+                                            </svg>
+                                            Execute
                                         </button>
                                         <button @click="selectedCommand = null"
                                             class="px-3 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 font-medium rounded-md text-xs">

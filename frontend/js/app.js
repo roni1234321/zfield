@@ -1914,7 +1914,14 @@ function terminalApp() {
                 if (this.discoveryCancelRequested) {
                     this.showStatus('Command discovery cancelled by user.', 'info');
                 } else {
-                    this.showStatus('All commands and deep subcommands scanned!', 'success');
+                    // Strip category commands that only serve as parents and just print help text
+                    const initialCount = this.commands.length;
+                    this.commands = this.commands.filter(c => !c.isCategory || c.isCustom);
+                    this.saveCachedCommands(this.commands);
+
+                    const strippedCount = initialCount - this.commands.length;
+                    console.log(`Stripped ${strippedCount} category-only commands.`);
+                    this.showStatus(`All commands scanned! Found ${this.commands.length} executable commands.`, 'success');
                 }
             } catch (error) {
                 console.error('Error scanning commands:', error);
@@ -1974,6 +1981,24 @@ function terminalApp() {
                 const subcommands = await this.discoverSubcommandsInternal(command);
 
                 if (subcommands && subcommands.length > 0) {
+                    // Refined category detection:
+                    // A command is a category only if it has subcommands AND its help output
+                    // contains a header like "command - description".
+                    const cmdName = (command.name || '').trim();
+                    const cleanText = this.discoveryCollectedData.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[0-9]*C/g, '');
+                    const firstLines = cleanText.split('\n').slice(0, 5).map(l => l.trim()).filter(l => l.length > 0);
+
+                    const hasCategoryHeader = firstLines.some(line => {
+                        // Match "cmd - desc" or "cmd- desc"
+                        const regex = new RegExp(`^${cmdName}\\s*-`, 'i');
+                        return regex.test(line);
+                    });
+
+                    if (hasCategoryHeader) {
+                        command.isCategory = true;
+                        console.log(`✓ [${cmdName}] identified as category-only command.`);
+                    }
+
                     // Flattening: Add subcommands directly to the flat list
                     const parentIdx = this.commands.findIndex(c => c.id === command.id || (c.fullName === command.fullName));
 
