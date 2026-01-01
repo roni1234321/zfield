@@ -1164,6 +1164,24 @@
                                     </button>
                                 </div>
 
+                                <!-- Command Scan Speed -->
+                                <div
+                                    class="bg-white dark:bg-slate-750 p-3 rounded-md border border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200">
+                                    <label class="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-2">
+                                        Command Discovery Speed
+                                    </label>
+                                    <select x-model="commandScanSpeed"
+                                        class="w-full px-3 py-2 bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-md text-xs text-gray-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="fast">Fast (Responsive shells)</option>
+                                        <option value="normal">Normal (Balanced)</option>
+                                        <option value="slow">Slow (Less responsive shells)</option>
+                                    </select>
+                                    <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-2">
+                                        Adjust scan speed based on your shell's responsiveness. Faster scans complete
+                                        quicker but may miss commands on slow connections.
+                                    </p>
+                                </div>
+
                             </div>
                         </div>
 

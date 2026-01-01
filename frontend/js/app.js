@@ -78,6 +78,7 @@ function terminalApp() {
         discoveryPaused: false,
         discoveryCancelRequested: false,
         searchCommands: '',
+        commandScanSpeed: 'normal', // fast, normal, slow
 
         // Modal State (Unified for Scanned & Custom)
         showCustomCommandModal: false,
@@ -1993,7 +1994,7 @@ function terminalApp() {
 
                 // Wait for user to decide
                 while (this.discoveryPaused && !this.discoveryCancelRequested) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Fast polling
                 }
 
                 if (this.discoveryCancelRequested) return;
@@ -2139,13 +2140,15 @@ function terminalApp() {
                 this.sendDiscoveryCommand(`${cmdName.trim()} --help\n`);
 
                 // Wait for discovery to complete
-                await this.waitForSubcommandDiscovery(1200);
+                const timeout = this.getScanTimeout();
+                await this.waitForSubcommandDiscovery(timeout);
 
                 // Parse subcommands from help output
                 const subcommands = this.parseSubcommands(this.discoveryCollectedData, cmdName.trim());
 
                 // Minimal delay to avoid overwhelming the shell
-                await new Promise(resolve => setTimeout(resolve, 10));
+                const delay = this.getScanDelay();
+                await new Promise(resolve => setTimeout(resolve, delay));
 
                 return subcommands;
             } catch (error) {
@@ -2153,6 +2156,26 @@ function terminalApp() {
                 return [];
             } finally {
                 this.commandDiscoveryInProgress = false;
+            }
+        },
+
+        // Get scan timeout based on speed setting
+        getScanTimeout() {
+            switch (this.commandScanSpeed) {
+                case 'fast': return 600;    // 0.6s - for responsive shells
+                case 'normal': return 1000;  // 1s - balanced
+                case 'slow': return 2000;    // 2s - for slow shells
+                default: return 1000;
+            }
+        },
+
+        // Get inter-command delay based on speed setting
+        getScanDelay() {
+            switch (this.commandScanSpeed) {
+                case 'fast': return 5;      // 5ms - minimal delay
+                case 'normal': return 10;    // 10ms - balanced
+                case 'slow': return 50;      // 50ms - give shell time to breathe
+                default: return 10;
             }
         },
 
@@ -2319,18 +2342,26 @@ function terminalApp() {
                     const elapsed = Date.now() - startTime;
 
                     // FAST PATH: Check if we have the prompt at the end of the buffer
-                    if (this.discoveryCollectedData.length > 5 &&
-                        (this.discoveryCollectedData.match(/[\$>] $/) || this.discoveryCollectedData.match(/\n.*[\$>] $/))) {
-                        console.log('Prompt detected, completing discovery immediately');
-                        resolved = true;
-                        resolve();
-                        return;
+                    // Improved regex to catch more prompt patterns (uart:~$, >, #, etc.)
+                    if (this.discoveryCollectedData.length > 5) {
+                        const endOfBuffer = this.discoveryCollectedData.slice(-50); // Check last 50 chars
+                        if (endOfBuffer.match(/[\$>#]\s*$/) ||
+                            endOfBuffer.match(/uart:~[\$>#]\s*$/) ||
+                            endOfBuffer.match(/\n.*[\$>#]\s*$/)) {
+                            console.log('Prompt detected, completing discovery immediately');
+                            resolved = true;
+                            resolve();
+                            return;
+                        }
                     }
 
-                    // Check if data has stopped changing (no new data for 0.15 seconds)
+                    // Check if data has stopped changing - speed-dependent stability check
+                    const stabilityChecks = this.commandScanSpeed === 'fast' ? 2 :
+                        this.commandScanSpeed === 'slow' ? 4 : 3;
+
                     if (this.discoveryCollectedData.length === lastDataLength) {
                         noDataChangedCount++;
-                        if (noDataChangedCount >= 3) { // 150ms (3 * 50ms)
+                        if (noDataChangedCount >= stabilityChecks) { // 100-200ms depending on speed
                             console.log('Data stable, completing discovery');
                             resolved = true;
                             resolve();
