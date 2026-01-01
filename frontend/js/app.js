@@ -1961,18 +1961,21 @@ function terminalApp() {
             console.log(`Starting deep subcommand discovery for ${this.commands.length} top-level commands`);
             this.discoveryProgress = { current: 0, total: this.commands.length };
 
-            // We use a queue-like approach to discover all subcommands recursively
-            // but we process them top-level first for better UX
-            for (let i = 0; i < this.commands.length; i++) {
+            // Start with top-level commands as base total
+            const roots = this.commands.filter(c => c.isRoot || c.isCustom || !c.parentName);
+            this.discoveryProgress = { current: 0, total: roots.length };
+
+            for (let i = 0; i < roots.length; i++) {
                 if (this.discoveryCancelRequested) break;
 
-                this.discoveryProgress.current = i + 1;
-
-                const cmd = this.commands[i];
-                // Skip discovery for custom commands created manually by the user
-                if (cmd.isCustom) continue;
+                const cmd = roots[i];
+                if (cmd.isCustom) {
+                    this.discoveryProgress.current++;
+                    continue;
+                }
 
                 await this.discoverDeep(cmd);
+                this.discoveryProgress.current++;
             }
             this.discoveryProgress = { current: 0, total: 0 };
             console.log('Deep subcommand discovery complete');
@@ -2874,7 +2877,7 @@ function terminalApp() {
         },
 
         processResponseSequences(sessionId, rawData) {
-            if (!rawData) return;
+            if (!rawData || this.commandDiscoveryInProgress) return;
             // Clean ANSI
             const cleanData = rawData.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[0-9]*C/g, '');
 
