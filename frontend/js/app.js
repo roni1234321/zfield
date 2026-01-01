@@ -264,11 +264,19 @@ function terminalApp() {
             const saved = localStorage.getItem('zdm_counters');
             if (saved) {
                 try {
-                    this.counters = JSON.parse(saved).map(c => ({
-                        ...c,
-                        buffer: '',
-                        justUpdated: false
-                    }));
+                    this.counters = JSON.parse(saved).map(c => {
+                        // Migrate old counters to new format
+                        if (!c.type) {
+                            c.type = 'text';
+                        }
+                        return {
+                            ...c,
+                            buffer: '',
+                            justUpdated: false,
+                            // Initialize type-specific runtime fields
+                            ...(c.type === 'traffic' && { resetTimerId: null }),
+                        };
+                    });
                 } catch (e) {
                     console.error('Error loading counters:', e);
                 }
@@ -276,21 +284,64 @@ function terminalApp() {
         },
 
         saveCounters() {
-            const toSave = this.counters.map(({ id, text, sessionId, count }) => ({
-                id, text, sessionId, count
-            }));
+            const toSave = this.counters.map(c => {
+                const base = { id: c.id, type: c.type, sessionId: c.sessionId };
+
+                if (c.type === 'text') {
+                    return { ...base, text: c.text, count: c.count };
+                } else if (c.type === 'traffic') {
+                    return {
+                        ...base,
+                        greenText: c.greenText,
+                        redText: c.redText,
+                        state: c.state || 'yellow',
+                        resetTimer: c.resetTimer || 5000,
+                        lastUpdate: c.lastUpdate
+                    };
+                } else if (c.type === 'slicer') {
+                    return {
+                        ...base,
+                        startText: c.startText,
+                        endText: c.endText,
+                        extractedValue: c.extractedValue || ''
+                    };
+                }
+                return base;
+            });
             localStorage.setItem('zdm_counters', JSON.stringify(toSave));
         },
 
-        addCounter() {
-            const newCounter = {
+        addCounter(type = 'text') {
+            const baseCounter = {
                 id: 'cnt_' + Date.now(),
-                text: '',
+                type: type,
                 sessionId: 'all',
-                count: 0,
                 buffer: '',
                 justUpdated: false
             };
+
+            let newCounter;
+            if (type === 'text') {
+                newCounter = { ...baseCounter, text: '', count: 0 };
+            } else if (type === 'traffic') {
+                newCounter = {
+                    ...baseCounter,
+                    greenText: '',
+                    redText: '',
+                    state: 'yellow',
+                    resetTimer: 5000,
+                    lastUpdate: null,
+                    resetTimerId: null
+                };
+            } else if (type === 'slicer') {
+                newCounter = {
+                    ...baseCounter,
+                    startText: '',
+                    endText: '',
+                    extractedValue: ''
+                };
+            }
+
             this.counters.push(newCounter);
             this.saveCounters();
         },
@@ -330,36 +381,146 @@ function terminalApp() {
 
             this.counters.forEach(counter => {
                 if (counter.sessionId !== 'all' && counter.sessionId !== sessionId) return;
-                if (!counter.text || counter.text.trim().length === 0) return;
 
-                // Handle split chunks by keeping a small overlap buffer
-                const search = counter.text;
-                // Use a different key for each session+counter combo to avoid cross-pollution
-                const bufferKey = sessionId + '_' + counter.id;
-                const combined = (this.lastCounterUpdate[bufferKey] || '') + cleanData;
+                // Route to type-specific handler
+                if (counter.type === 'text') {
+                    this.updateTextCounter(counter, cleanData, sessionId);
+                } else if (counter.type === 'traffic') {
+                    this.updateTrafficCounter(counter, cleanData, sessionId);
+                } else if (counter.type === 'slicer') {
+                    this.updateSlicerCounter(counter, cleanData, sessionId);
+                }
+            });
+        },
 
-                // Count occurrences
-                const parts = combined.split(search);
-                const occurrences = parts.length - 1;
+        updateTextCounter(counter, cleanData, sessionId) {
+            if (!counter.text || counter.text.trim().length === 0) return;
 
-                if (occurrences > 0) {
-                    counter.count += occurrences;
+            // Handle split chunks by keeping a small overlap buffer
+            const search = counter.text;
+            const bufferKey = sessionId + '_' + counter.id;
+            const combined = (this.lastCounterUpdate[bufferKey] || '') + cleanData;
 
-                    // Leading-edge debounce for highlight effect
+            // Count occurrences
+            const parts = combined.split(search);
+            const occurrences = parts.length - 1;
+
+            if (occurrences > 0) {
+                counter.count += occurrences;
+
+                // Leading-edge debounce for highlight effect
+                if (!counter.justUpdated) {
+                    counter.justUpdated = true;
+                    setTimeout(() => { counter.justUpdated = false; }, 1000);
+                }
+            }
+
+            // Store tail for next update
+            const tailLen = search.length - 1;
+            if (tailLen > 0) {
+                this.lastCounterUpdate[bufferKey] = combined.slice(-tailLen);
+            } else {
+                this.lastCounterUpdate[bufferKey] = '';
+            }
+        },
+
+        updateTrafficCounter(counter, cleanData, sessionId) {
+            const bufferKey = sessionId + '_' + counter.id;
+            const combined = (this.lastCounterUpdate[bufferKey] || '') + cleanData;
+
+            let stateChanged = false;
+
+            // Check for green pattern
+            if (counter.greenText && counter.greenText.trim() && combined.includes(counter.greenText)) {
+                counter.state = 'green';
+                counter.lastUpdate = Date.now();
+                stateChanged = true;
+            }
+
+            // Check for red pattern (overrides green)
+            if (counter.redText && counter.redText.trim() && combined.includes(counter.redText)) {
+                counter.state = 'red';
+                counter.lastUpdate = Date.now();
+                stateChanged = true;
+            }
+
+            // Schedule reset to yellow if state changed
+            if (stateChanged) {
+                this.scheduleTrafficReset(counter);
+
+                // Visual feedback
+                if (!counter.justUpdated) {
+                    counter.justUpdated = true;
+                    setTimeout(() => { counter.justUpdated = false; }, 1000);
+                }
+            }
+
+            // Store tail
+            const maxLen = Math.max(
+                (counter.greenText || '').length,
+                (counter.redText || '').length
+            );
+            if (maxLen > 0) {
+                this.lastCounterUpdate[bufferKey] = combined.slice(-(maxLen - 1));
+            } else {
+                this.lastCounterUpdate[bufferKey] = '';
+            }
+        },
+
+        scheduleTrafficReset(counter) {
+            // Clear existing timer
+            if (counter.resetTimerId) {
+                clearTimeout(counter.resetTimerId);
+            }
+
+            // Schedule reset to yellow
+            const resetTime = parseInt(counter.resetTimer) || 5000;
+            counter.resetTimerId = setTimeout(() => {
+                counter.state = 'yellow';
+                counter.resetTimerId = null;
+            }, resetTime);
+        },
+
+        updateSlicerCounter(counter, cleanData, sessionId) {
+            if (!counter.startText || counter.startText.trim().length === 0) return;
+
+            const bufferKey = sessionId + '_' + counter.id;
+            const combined = (this.lastCounterUpdate[bufferKey] || '') + cleanData;
+
+            const startIdx = combined.lastIndexOf(counter.startText);
+            if (startIdx === -1) {
+                // Keep reasonable buffer for split chunks
+                this.lastCounterUpdate[bufferKey] = combined.slice(-200);
+                return;
+            }
+
+            const afterStart = combined.substring(startIdx + counter.startText.length);
+
+            // Extract until end text or newline
+            const endText = (counter.endText && counter.endText.trim()) || '\n';
+            const endIdx = afterStart.indexOf(endText);
+
+            if (endIdx !== -1) {
+                const extracted = afterStart.substring(0, endIdx).trim();
+                if (extracted !== counter.extractedValue) {
+                    counter.extractedValue = extracted;
+
+                    // Visual feedback
                     if (!counter.justUpdated) {
                         counter.justUpdated = true;
                         setTimeout(() => { counter.justUpdated = false; }, 1000);
                     }
                 }
-
-                // Store tail for next update (length of search text - 1)
-                const tailLen = search.length - 1;
-                if (tailLen > 0) {
-                    this.lastCounterUpdate[bufferKey] = combined.slice(-tailLen);
-                } else {
-                    this.lastCounterUpdate[bufferKey] = '';
+            } else {
+                // End not found yet, show partial with ellipsis
+                const partial = afterStart.substring(0, 50).trim();
+                if (partial) {
+                    counter.extractedValue = partial + (afterStart.length > 50 ? '...' : '');
                 }
-            });
+            }
+
+            // Store tail for split chunks
+            this.lastCounterUpdate[bufferKey] = combined.slice(-300);
         },
 
         // Initialize terminal (returns term instance, doesn't attach yet if container not found)

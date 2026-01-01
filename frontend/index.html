@@ -303,7 +303,7 @@
 
                 <!-- Bottom Group (Bound to Counter Panel Height) -->
                 <div class="w-full flex flex-col items-center relative transition-all duration-300 shrink-0"
-                    :class="showCounters ? (counterPanelHeight === 'large' ? 'h-24' : 'h-16') : 'h-16'">
+                    :class="showCounters ? 'h-24' : 'h-16'">
 
                     <!-- Separator (Aligned exactly with Panel Top Border) -->
                     <div class="absolute top-0 w-8 h-px bg-gray-200 dark:bg-slate-700"></div>
@@ -1541,28 +1541,10 @@
 
                 <!-- Bottom Panel (Counters) -->
                 <div x-show="showCounters" x-cloak
-                    class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 flex items-center px-4 transition-all duration-300 shrink-0 relative"
-                    :class="counterPanelHeight === 'large' ? 'h-24' : 'h-16'">
+                    class="bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 flex items-center px-4 transition-all duration-300 shrink-0 relative h-24">
 
-                    <!-- Panel Actions (Top Right) -->
-                    <div class="absolute top-1 right-1 flex items-center gap-0.5">
-                        <!-- Resize Button -->
-                        <button @click="counterPanelHeight = (counterPanelHeight === 'normal' ? 'large' : 'normal')"
-                            class="p-0.5 text-gray-400 hover:text-indigo-500 transition-colors"
-                            :title="counterPanelHeight === 'normal' ? 'Enlarge Panel' : 'Shrink Panel'">
-                            <svg x-show="counterPanelHeight === 'normal'" class="w-3.5 h-3.5" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 11l7-7 7 7M5 19l7-7 7 7"></path>
-                            </svg>
-                            <svg x-show="counterPanelHeight === 'large'" class="w-3.5 h-3.5" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 13l-7 7-7-7M19 5l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-
-                        <!-- Close Button -->
+                    <!-- Close Button (Top Right) -->
+                    <div class="absolute top-1 right-1">
                         <button @click="showCounters = false"
                             class="p-0.5 text-gray-400 hover:text-rose-500 transition-colors"
                             title="Hide Counters Panel">
@@ -1575,37 +1557,104 @@
                     </div>
 
                     <!-- Counters List -->
-                    <div class="flex-1 flex items-center gap-3 overflow-x-auto no-scrollbar py-1 pt-3">
+                    <div class="flex-1 flex items-center gap-3 overflow-x-auto no-scrollbar">
                         <template x-for="counter in counters" :key="counter.id">
-                            <div
-                                class="flex items-center bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-lg pl-3 pr-2 py-1 gap-2 group min-w-[200px] border-l-4 border-l-indigo-500">
+                            <div class="flex items-center bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-lg pl-3 pr-2 py-2 gap-2 group min-w-[200px]"
+                                :class="counter.type === 'text' ? 'border-l-4 border-l-indigo-500' : counter.type === 'traffic' ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-emerald-500'">
 
-                                <!-- Search Text Input -->
-                                <div class="flex flex-col flex-1 min-w-0">
-                                    <input type="text" x-model="counter.text" @input="saveCounters()"
-                                        placeholder="Text to count..."
-                                        class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 w-full"
-                                        @keydown.enter="$el.blur()">
+                                <!-- TEXT COUNTER -->
+                                <template x-if="counter.type === 'text' || !counter.type">
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <input type="text" x-model="counter.text" @input="saveCounters()"
+                                            placeholder="Text to count..."
+                                            class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 w-full"
+                                            @keydown.enter="$el.blur()">
 
-                                    <!-- Session Select -->
-                                    <div class="flex items-center gap-1">
-                                        <select x-model="counter.sessionId" @change="saveCounters()"
-                                            class="bg-transparent border-none focus:ring-0 text-[10px] text-gray-500 dark:text-slate-400 p-0 leading-tight appearance-none cursor-pointer hover:text-indigo-500 max-w-[100px] truncate">
-                                            <option value="all">All Sessions</option>
-                                            <template x-for="s in sessions" :key="s.id">
-                                                <option :value="s.id" x-text="s.port"></option>
-                                            </template>
-                                        </select>
+                                        <!-- Session Select -->
+                                        <div class="flex items-center gap-1">
+                                            <select x-model="counter.sessionId" @change="saveCounters()"
+                                                class="bg-transparent border-none focus:ring-0 text-[10px] text-gray-500 dark:text-slate-400 p-0 leading-tight appearance-none cursor-pointer hover:text-indigo-500 max-w-[100px] truncate">
+                                                <option value="all">All Sessions</option>
+                                                <template x-for="s in sessions" :key="s.id">
+                                                    <option :value="s.id" x-text="s.port"></option>
+                                                </template>
+                                            </select>
+                                        </div>
                                     </div>
-                                </div>
+                                </template>
 
-                                <!-- Count Badge -->
-                                <div @click="resetCounter(counter.id)" title="Click to reset counter"
-                                    class="px-2.5 py-1 bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black rounded-lg w-[60px] flex-shrink-0 text-center transition-all duration-300 cursor-pointer hover:bg-rose-500 hover:text-white"
-                                    style="font-variant-numeric: tabular-nums;"
-                                    :class="counter.justUpdated ? 'bg-emerald-500 !text-white scale-110 shadow-[0_0_12px_rgba(16,185,129,0.4)]' : ''"
-                                    x-text="Number(counter.count).toLocaleString()">
-                                </div>
+                                <!-- TRAFFIC LIGHT COUNTER -->
+                                <template x-if="counter.type === 'traffic'">
+                                    <div class="flex flex-col flex-1 min-w-0 gap-1">
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-[9px] text-gray-500 dark:text-slate-500 w-8">Green:</span>
+                                            <input type="text" x-model="counter.greenText" @input="saveCounters()"
+                                                placeholder="OK"
+                                                class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 flex-1"
+                                                @keydown.enter="$el.blur()">
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-[9px] text-gray-500 dark:text-slate-500 w-8">Red:</span>
+                                            <input type="text" x-model="counter.redText" @input="saveCounters()"
+                                                placeholder="ERROR"
+                                                class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 flex-1"
+                                                @keydown.enter="$el.blur()">
+                                            <input type="number" x-model.number="counter.resetTimer"
+                                                @input="counter.resetTimer = $el.value * 1000; saveCounters()"
+                                                :value="(counter.resetTimer || 5000) / 1000" placeholder="5"
+                                                class="bg-transparent border-none focus:ring-0 text-xs text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 w-8"
+                                                @keydown.enter="$el.blur()">
+                                            <span class="text-[9px] text-gray-500 dark:text-slate-500">sec</span>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- LOG SLICER COUNTER -->
+                                <template x-if="counter.type === 'slicer'">
+                                    <div class="flex flex-col flex-1 min-w-0 gap-1">
+                                        <div class="flex items-center gap-1">
+                                            <span
+                                                class="text-[9px] text-gray-500 dark:text-slate-500 w-10">Start:</span>
+                                            <input type="text" x-model="counter.startText" @input="saveCounters()"
+                                                placeholder="Param:"
+                                                class="bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 flex-1"
+                                                @keydown.enter="$el.blur()">
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-[9px] text-gray-500 dark:text-slate-500 w-10">End:</span>
+                                            <input type="text" x-model="counter.endText" @input="saveCounters()"
+                                                placeholder="(newline)"
+                                                class="bg-transparent border-none focus:ring-0 text-xs text-gray-700 dark:text-slate-200 p-0 placeholder-gray-400 dark:placeholder-slate-500 flex-1"
+                                                @keydown.enter="$el.blur()">
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Display Badge (type-specific) -->
+                                <template x-if="counter.type === 'text' || !counter.type">
+                                    <div @click="resetCounter(counter.id)" title="Click to reset counter"
+                                        class="px-2.5 py-1 bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black rounded-lg w-[60px] flex-shrink-0 text-center transition-all duration-300 cursor-pointer hover:bg-rose-500 hover:text-white"
+                                        style="font-variant-numeric: tabular-nums;"
+                                        :class="counter.justUpdated ? 'bg-emerald-500 !text-white scale-110 shadow-[0_0_12px_rgba(16,185,129,0.4)]' : ''"
+                                        x-text="Number(counter.count).toLocaleString()">
+                                    </div>
+                                </template>
+
+                                <template x-if="counter.type === 'traffic'">
+                                    <div class="text-2xl flex-shrink-0 transition-all duration-300"
+                                        :class="counter.justUpdated ? 'scale-125' : ''">
+                                        <span x-show="counter.state === 'green'">🟢</span>
+                                        <span x-show="counter.state === 'yellow' || !counter.state">🟡</span>
+                                        <span x-show="counter.state === 'red'">🔴</span>
+                                    </div>
+                                </template>
+
+                                <template x-if="counter.type === 'slicer'">
+                                    <div class="px-2.5 py-1 bg-slate-700 dark:bg-slate-800 text-emerald-400 dark:text-emerald-300 text-xs font-mono rounded-lg max-w-[150px] flex-shrink-0 truncate transition-all duration-300"
+                                        :class="counter.justUpdated ? 'bg-emerald-600 !text-white scale-105 shadow-[0_0_12px_rgba(16,185,129,0.4)]' : ''"
+                                        :title="counter.extractedValue || '-'" x-text="counter.extractedValue || '-'">
+                                    </div>
+                                </template>
 
                                 <!-- Actions -->
                                 <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1622,16 +1671,59 @@
                         </template>
                     </div>
 
-                    <!-- Add Counter Button (Right Side) -->
-                    <div class="flex items-center shrink-0 pt-3">
-                        <button @click="addCounter()"
-                            class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
-                            title="Add Counter (counts occurrences of text in terminal)">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
-                            </svg>
-                        </button>
+                    <!-- Add Counter Button with Dropdown (Right Side) -->
+                    <div class="flex items-center shrink-0 pt-3" x-data="{ showCounterMenu: false }"
+                        @click.away="showCounterMenu = false">
+                        <div class="relative">
+                            <button @click="showCounterMenu = !showCounterMenu"
+                                class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                title="Add Counter">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div x-show="showCounterMenu" x-cloak x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="transform opacity-0 scale-95"
+                                x-transition:enter-end="transform opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="transform opacity-100 scale-100"
+                                x-transition:leave-end="transform opacity-0 scale-95"
+                                class="absolute bottom-full right-0 mb-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 py-1 z-50">
+
+                                <button @click="addCounter('text'); showCounterMenu = false"
+                                    class="w-full px-3 py-2 text-left text-xs hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                                    <span class="text-base">📊</span>
+                                    <div>
+                                        <div class="font-semibold text-gray-900 dark:text-slate-100">Text Counter</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-slate-400">Count text
+                                            occurrences</div>
+                                    </div>
+                                </button>
+
+                                <button @click="addCounter('traffic'); showCounterMenu = false"
+                                    class="w-full px-3 py-2 text-left text-xs hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                                    <span class="text-base">🚦</span>
+                                    <div>
+                                        <div class="font-semibold text-gray-900 dark:text-slate-100">Traffic Light</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-slate-400">Visual status
+                                            indicator</div>
+                                    </div>
+                                </button>
+
+                                <button @click="addCounter('slicer'); showCounterMenu = false"
+                                    class="w-full px-3 py-2 text-left text-xs hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2">
+                                    <span class="text-base">✂️</span>
+                                    <div>
+                                        <div class="font-semibold text-gray-900 dark:text-slate-100">Log Slicer</div>
+                                        <div class="text-[10px] text-gray-500 dark:text-slate-400">Extract text from
+                                            logs</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
