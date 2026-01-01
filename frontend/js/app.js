@@ -1838,6 +1838,8 @@ function terminalApp() {
         mergeDiscoveredCommands(newCommands) {
             newCommands.forEach(newCmd => {
                 // Determine if it exists (match by id or name)
+                const existingIdx = this.commands.findIndex(c => c.name === newCmd.name || c.id === newCmd.id);
+
                 if (existingIdx !== -1) {
                     const existing = this.commands[existingIdx];
                     if (!existing.userModified) {
@@ -2171,76 +2173,72 @@ function terminalApp() {
                 let resolved = false;
 
                 const checkCompletion = () => {
-                    if (resolved) return; // Prevent multiple resolutions
+                    if (resolved) return;
 
-                    console.log(`Discovery check: data length = ${this.discoveryCollectedData.length}, timeout in ${timeout - (Date.now() - startTime)} ms`);
-
-                    // Check if we have help output with commands
-                    if (this.discoveryCollectedData.includes('Available commands:')) {
-                        // Parse the help output
-                        const parsed = this.parseHelpOutput(this.discoveryCollectedData);
-
-                        console.log(`Found ${parsed.length} commands`);
-
-                        if (parsed.length > 0) {
-                            // Successfully got command list
-                            resolved = true;
-                            this.mergeDiscoveredCommands(parsed);
-                            this.commandDiscoveryInProgress = false;
-                            console.log('✓ Discovery successful with', parsed.length, 'commands');
-                            resolve();
-                            return;
-                        }
-                    }
-
-                    // Check if we have help output with commands
-                    if (this.discoveryCollectedData.includes('Available commands:')) {
-                        // If we also see the prompt, we are definitely done
-                        if (this.discoveryCollectedData.match(/[\$>] $/) || this.discoveryCollectedData.match(/\n.*[\$>] $/)) {
+                    try {
+                        // Check if we have help output with commands
+                        if (this.discoveryCollectedData.includes('Available commands:')) {
                             const parsed = this.parseHelpOutput(this.discoveryCollectedData);
-                            if (parsed.length > 0) {
+
+                            // Check for prompt at the end - definitive end signal
+                            const hasPrompt = this.discoveryCollectedData.match(/[\$>] $/) ||
+                                this.discoveryCollectedData.match(/\n.*[\$>] $/);
+
+                            if (parsed.length > 0 && hasPrompt) {
                                 resolved = true;
                                 this.mergeDiscoveredCommands(parsed);
                                 this.commandDiscoveryInProgress = false;
-                                console.log('✓ Discovery successful (prompt detected) with', parsed.length, 'commands');
                                 resolve();
                                 return;
                             }
                         }
-                    }
 
-                    // Check if data has stopped changing (no new data for 0.2 seconds)
-                    if (this.discoveryCollectedData.length === lastDataLength) {
-                        noDataChangedCount++;
-                        if (noDataChangedCount >= 3) { // 150ms with no change (3 * 50ms)
-                            console.log('No new data for 150ms, treating as complete');
-                            const parsed = this.parseHelpOutput(this.discoveryCollectedData);
-                            if (parsed.length > 0) {
-                                resolved = true;
-                                this.mergeDiscoveredCommands(parsed);
-                                console.log('✓ Discovery successful (data stable) with', parsed.length, 'commands');
-                                resolve();
+                        // Check if data has stopped changing
+                        if (this.discoveryCollectedData.length > 0 &&
+                            this.discoveryCollectedData.length === lastDataLength) {
+                            noDataChangedCount++;
+                            if (noDataChangedCount >= 6) { // 300ms stable
+                                const parsed = this.parseHelpOutput(this.discoveryCollectedData);
+                                if (parsed.length > 0) {
+                                    resolved = true;
+                                    this.mergeDiscoveredCommands(parsed);
+                                    resolve();
+                                } else {
+                                    resolved = true;
+                                    reject(new Error('No commands found in output'));
+                                }
                                 return;
+                            }
+                        } else {
+                            noDataChangedCount = 0;
+                            lastDataLength = this.discoveryCollectedData.length;
+                        }
+
+                        // Check timeout
+                        const elapsed = Date.now() - startTime;
+                        if (elapsed > timeout) {
+                            resolved = true;
+                            if (this.discoveryCollectedData.length > 0) {
+                                const parsed = this.parseHelpOutput(this.discoveryCollectedData);
+                                if (parsed.length > 0) {
+                                    this.mergeDiscoveredCommands(parsed);
+                                    resolve();
+                                } else {
+                                    reject(new Error('Command discovery timeout'));
+                                }
                             } else {
-                                resolved = true;
-                                reject(new Error('No commands found in help output'));
-                                return;
+                                reject(new Error('Command discovery timeout (no data)'));
                             }
+                            return;
                         }
-                    } else {
-                        noDataChangedCount = 0;
-                        lastDataLength = this.discoveryCollectedData.length;
-                    }
 
-                    // Check timeout
-                    if (Date.now() - startTime > timeout) {
+                        // Try again in 50ms
+                        setTimeout(checkCompletion, 50);
+                    } catch (e) {
+                        console.error('Error in checkCompletion:', e);
                         resolved = true;
-                        reject(new Error('Command discovery timeout'));
-                        return;
+                        reject(e);
                     }
-
-                    // Try again in 50ms
-                    setTimeout(checkCompletion, 50);
                 };
 
                 checkCompletion();
