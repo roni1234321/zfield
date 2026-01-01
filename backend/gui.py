@@ -42,6 +42,9 @@ def main():
         min_size=(800, 600)
     )
 
+    # Store window in app state for API access
+    app.state.window = window
+
     # Start the webview loop
     webview.start()
 

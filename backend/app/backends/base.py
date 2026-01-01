@@ -56,3 +56,12 @@ class BaseBackend(ABC):
         """
         pass
 
+    @abstractmethod
+    def set_log_file(self, path: str) -> None:
+        """Set the path for session logging.
+        
+        Args:
+            path: Path to the log file
+        """
+        pass
+

@@ -19,6 +19,8 @@ class SerialBackend(BaseBackend):
         self.read_task: Optional[asyncio.Task] = None
         self._connected = False
         self.history_buffer = deque(maxlen=1024 * 100)  # Store last 100KB
+        self.log_file: Optional[str] = None
+        self.log_handle = None
     
     async def connect(self, port: str, baudrate: int = 115200, **kwargs) -> bool:
         """Connect to serial port.
@@ -77,6 +79,13 @@ class SerialBackend(BaseBackend):
             self.serial_port.close()
         
         self.serial_port = None
+        
+        if self.log_handle:
+            try:
+                self.log_handle.close()
+            except:
+                pass
+            self.log_handle = None
     
     async def send(self, data: bytes) -> None:
         """Send data to serial port.
@@ -91,6 +100,13 @@ class SerialBackend(BaseBackend):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.serial_port.write, data)
         await loop.run_in_executor(None, self.serial_port.flush)
+        
+        if self.log_handle:
+            try:
+                self.log_handle.write(data)
+                self.log_handle.flush()
+            except Exception as e:
+                print(f"Error writing to log file: {e}")
     
     def is_connected(self) -> bool:
         """Check if serial port is connected.
@@ -115,6 +131,18 @@ class SerialBackend(BaseBackend):
             The raw bytes currently stored in the history buffer.
         """
         return bytes(self.history_buffer)
+    
+    def set_log_file(self, path: str) -> None:
+        """Set the path for session logging."""
+        self.log_file = path
+        try:
+            # Ensure directory exists
+            import os
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            self.log_handle = open(path, 'ab')
+            print(f"Logging to {path}")
+        except Exception as e:
+            print(f"Failed to open log file {path}: {e}")
     
     async def _read_loop(self) -> None:
         """Background task to read data from serial port."""
@@ -156,6 +184,13 @@ class SerialBackend(BaseBackend):
                     
                     if self.data_callback:
                         self.data_callback(data)
+                        
+                    if self.log_handle:
+                        try:
+                            self.log_handle.write(data)
+                            self.log_handle.flush()
+                        except Exception as e:
+                            print(f"Error writing to log file: {e}")
                 else:
                     # No data received, small sleep to prevent busy loop
                     await asyncio.sleep(0.01)

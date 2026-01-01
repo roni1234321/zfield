@@ -12,6 +12,7 @@ function terminalApp() {
         telnetHost: 'localhost',
         telnetPort: '23',
         baudRate: '115200',
+        logFileName: '',
         availablePorts: [],
         loadingPorts: false,
         statusMessage: '',
@@ -37,6 +38,7 @@ function terminalApp() {
         dragOverIconId: null,
         expandedCommandId: null, // ID of the command whose actions are currently expanded
         dragOverCommandId: null, // ID of the command being dragged over
+        draggedCommandId: null, // ID of the command being dragged
         recentlyMovedCommandId: null, // ID of the command that was just moved
 
 
@@ -140,6 +142,12 @@ function terminalApp() {
                 this.manualPort = savedManualPort;
                 this.selectedPort = savedManualPort; // Sync with selectedPort so UI buttons work
                 console.log('Loaded saved manual port:', savedManualPort);
+            }
+
+            // Load saved log file name
+            const savedLogFile = localStorage.getItem('zdm_log_file_name');
+            if (savedLogFile) {
+                this.logFileName = savedLogFile;
             }
 
             // Load available ports
@@ -519,7 +527,8 @@ function terminalApp() {
                 settings: {
                     theme: this.theme,
                     sidebarWidth: this.sidebarWidth,
-                    activeView: this.activeView
+                    activeView: this.activeView,
+                    logFileName: this.logFileName
                 },
                 sessions: this.sessions.map(s => ({
                     id: s.id,
@@ -601,6 +610,7 @@ function terminalApp() {
                     }
                     if (project.settings.sidebarWidth) this.sidebarWidth = project.settings.sidebarWidth;
                     if (project.settings.activeView) this.activeView = project.settings.activeView;
+                    if (project.settings.logFileName) this.logFileName = project.settings.logFileName;
                 }
 
                 // Restore Data
@@ -756,6 +766,23 @@ function terminalApp() {
                 this.appVersion = data;
             } catch (error) {
                 console.error('Error loading version:', error);
+            }
+        },
+
+        // Browse for log file
+        async browseLogFile() {
+            try {
+                const response = await fetch('/api/browse');
+                const data = await response.json();
+                if (data.path) {
+                    this.logFileName = data.path;
+                    localStorage.setItem('zdm_log_file_name', this.logFileName);
+                } else if (data.error) {
+                    this.showStatus(data.error, 'warning');
+                }
+            } catch (error) {
+                console.error('Error browsing for file:', error);
+                this.showStatus('Error opening file dialog: ' + error.message, 'error');
             }
         },
 
@@ -1413,13 +1440,19 @@ function terminalApp() {
                     localStorage.setItem('zdm_manual_port', this.manualPort);
                 }
 
+                // Save log file to localStorage
+                if (this.logFileName) {
+                    localStorage.setItem('zdm_log_file_name', this.logFileName);
+                }
+
                 const response = await fetch('/api/connect', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         port: portToConnect,
                         baudrate: parseInt(this.baudRate) || 115200,
-                        connection_type: this.connectionMode
+                        connection_type: this.connectionMode,
+                        log_file: this.logFileName
                     })
                 });
 

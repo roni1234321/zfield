@@ -12,13 +12,14 @@ class ConnectionManager:
         # Map port names to Backend instances
         self.backends: dict[str, BaseBackend] = {}
     
-    async def connect(self, port: str, baudrate: int = 115200, connection_type: str = "serial", **kwargs) -> bool:
+    async def connect(self, port: str, baudrate: int = 115200, connection_type: str = "serial", log_file: Optional[str] = None, **kwargs) -> bool:
         """Connect to a specific serial port or telnet host.
         
         Args:
             port: Serial port name or "host:port" for telnet
             baudrate: Baud rate (serial only)
             connection_type: "serial" or "telnet"
+            log_file: Optional path template for logging
             **kwargs: Additional parameters
             
         Returns:
@@ -44,6 +45,10 @@ class ConnectionManager:
             success = await backend.connect(port=port, baudrate=baudrate, **kwargs)
         
         if success:
+            if log_file:
+                formatted_log_path = self._format_log_path(log_file, port, connection_type, baudrate)
+                backend.set_log_file(formatted_log_path)
+                
             self.backends[port] = backend
             return True
         return False
@@ -100,6 +105,43 @@ class ConnectionManager:
         """
         return self.backends.get(port)
     
+    def _format_log_path(self, path: str, port: str, connection_type: str, baudrate: int = 115200) -> str:
+        """Format the log path by replacing placeholders.
+        
+        Placeholders:
+        &Y - Year (YYYY)
+        &M - Month (MM)
+        &D - Day (DD)
+        &T - Time (HHMMSS)
+        &H - Hostname / Port name
+        &P - Port number / Baudrate
+        """
+        import datetime
+        now = datetime.datetime.now()
+        
+        res = path
+        res = res.replace("&Y", now.strftime("%Y"))
+        res = res.replace("&M", now.strftime("%m"))
+        res = res.replace("&D", now.strftime("%d"))
+        res = res.replace("&T", now.strftime("%H%M%S"))
+        
+        # For &H and &P, it depends on connection type
+        host = port
+        p_num = ""
+        
+        if connection_type == "telnet":
+            if ":" in port:
+                host, p_num = port.split(":")
+        else:
+            # Serial: host is port name, p_num is baudrate
+            host = port
+            p_num = baudrate
+            
+        res = res.replace("&H", host)
+        res = res.replace("&P", str(p_num))
+        
+        return res
+
     @staticmethod
     def list_ports() -> list[dict]:
         """List available serial ports.
