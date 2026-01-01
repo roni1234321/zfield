@@ -77,6 +77,7 @@ function terminalApp() {
         showDiscoveryConfirm: false,
         discoveryPaused: false,
         discoveryCancelRequested: false,
+        searchCommands: '',
 
         // Modal State (Unified for Scanned & Custom)
         showCustomCommandModal: false,
@@ -1144,6 +1145,7 @@ function terminalApp() {
                 // Update existing
                 const existing = this.commands[existingIdx];
                 existing.name = modalData.name;
+                existing.fullName = modalData.name;
                 existing.description = modalData.description;
                 existing.args = JSON.parse(JSON.stringify(modalData.args));
                 existing.userModified = true;
@@ -1152,6 +1154,7 @@ function terminalApp() {
                 const newCmd = {
                     id: 'custom_' + Date.now(),
                     name: modalData.name,
+                    fullName: modalData.name,
                     description: modalData.description,
                     args: JSON.parse(JSON.stringify(modalData.args)),
                     isCustom: true,
@@ -2581,9 +2584,9 @@ function terminalApp() {
                         const args = this.parseArguments(fullText);
 
                         subcommands.push({
-                            id: `${parentCommand}_${subCmdName} `,
+                            id: `${parentCommand}_${subCmdName}`,
                             name: subCmdName,
-                            fullName: `${parentCommand} ${subCmdName} `,
+                            fullName: `${parentCommand} ${subCmdName}`,
                             description: subCmdDesc,
                             parent: parentCommand,
                             usage: usage,
@@ -2721,6 +2724,7 @@ function terminalApp() {
                         commands.push({
                             id: cmdName,
                             name: cmdName,
+                            fullName: cmdName,
                             description: cmdDesc,
                             usage: usage,
                             helpText: fullDesc,
