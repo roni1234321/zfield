@@ -13,6 +13,8 @@ function terminalApp() {
         telnetPort: '23',
         baudRate: '115200',
         logFileName: '',
+        logMode: 'printable', // 'printable' or 'raw'
+        omitSent: true, // Whether to omit transmitted data from logs
         availablePorts: [],
         loadingPorts: false,
         statusMessage: '',
@@ -148,6 +150,16 @@ function terminalApp() {
             const savedLogFile = localStorage.getItem('zdm_log_file_name');
             if (savedLogFile) {
                 this.logFileName = savedLogFile;
+            }
+
+            const savedLogMode = localStorage.getItem('zdm_log_mode');
+            if (savedLogMode) {
+                this.logMode = savedLogMode;
+            }
+
+            const savedOmitSent = localStorage.getItem('zdm_omit_sent');
+            if (savedOmitSent !== null) {
+                this.omitSent = savedOmitSent === 'true';
             }
 
             // Load available ports
@@ -528,7 +540,9 @@ function terminalApp() {
                     theme: this.theme,
                     sidebarWidth: this.sidebarWidth,
                     activeView: this.activeView,
-                    logFileName: this.logFileName
+                    logFileName: this.logFileName,
+                    logMode: this.logMode,
+                    omitSent: this.omitSent
                 },
                 sessions: this.sessions.map(s => ({
                     id: s.id,
@@ -611,6 +625,8 @@ function terminalApp() {
                     if (project.settings.sidebarWidth) this.sidebarWidth = project.settings.sidebarWidth;
                     if (project.settings.activeView) this.activeView = project.settings.activeView;
                     if (project.settings.logFileName) this.logFileName = project.settings.logFileName;
+                    if (project.settings.logMode) this.logMode = project.settings.logMode;
+                    if (project.settings.omitSent !== undefined) this.omitSent = project.settings.omitSent;
                 }
 
                 // Restore Data
@@ -1413,11 +1429,31 @@ function terminalApp() {
                 portToConnect = this.manualPort || this.selectedPort;
             }
 
-            if (state === 'switch') {
-                const session = this.sessions.find(s => s.port === portToConnect);
-                this.switchSession(session.id);
-                this.showSettings = false;
-                this.activeView = 'commands';
+            if (state === 'switch' || (this.connected && portToConnect === this.currentPort)) {
+                // Update logging settings if already connected
+                try {
+                    await fetch('/api/update_logging', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            port: portToConnect,
+                            log_mode: this.logMode,
+                            log_tx: !this.omitSent
+                        })
+                    });
+                    localStorage.setItem('zdm_log_mode', this.logMode);
+                    localStorage.setItem('zdm_omit_sent', this.omitSent);
+                    this.showStatus('Logging settings updated', 'success');
+                } catch (e) {
+                    console.error('Failed to update logging settings:', e);
+                }
+
+                if (state === 'switch') {
+                    const session = this.sessions.find(s => s.port === portToConnect);
+                    this.switchSession(session.id);
+                    this.showSettings = false;
+                    this.activeView = 'commands';
+                }
                 return;
             }
 
@@ -1440,10 +1476,12 @@ function terminalApp() {
                     localStorage.setItem('zdm_manual_port', this.manualPort);
                 }
 
-                // Save log file to localStorage
+                // Save logging settings to localStorage
                 if (this.logFileName) {
                     localStorage.setItem('zdm_log_file_name', this.logFileName);
                 }
+                localStorage.setItem('zdm_log_mode', this.logMode);
+                localStorage.setItem('zdm_omit_sent', this.omitSent);
 
                 const response = await fetch('/api/connect', {
                     method: 'POST',
@@ -1452,7 +1490,9 @@ function terminalApp() {
                         port: portToConnect,
                         baudrate: parseInt(this.baudRate) || 115200,
                         connection_type: this.connectionMode,
-                        log_file: this.logFileName
+                        log_file: this.logFileName,
+                        log_mode: this.logMode,
+                        log_tx: !this.omitSent
                     })
                 });
 

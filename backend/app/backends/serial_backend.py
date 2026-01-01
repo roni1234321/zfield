@@ -1,5 +1,6 @@
 """Serial port backend implementation."""
 import asyncio
+import re
 import serial
 import serial.tools.list_ports
 import os
@@ -21,6 +22,8 @@ class SerialBackend(BaseBackend):
         self.history_buffer = deque(maxlen=1024 * 100)  # Store last 100KB
         self.log_file: Optional[str] = None
         self.log_handle = None
+        self.log_mode = "printable"
+        self.log_tx = True
     
     async def connect(self, port: str, baudrate: int = 115200, **kwargs) -> bool:
         """Connect to serial port.
@@ -101,12 +104,8 @@ class SerialBackend(BaseBackend):
         await loop.run_in_executor(None, self.serial_port.write, data)
         await loop.run_in_executor(None, self.serial_port.flush)
         
-        if self.log_handle:
-            try:
-                self.log_handle.write(data)
-                self.log_handle.flush()
-            except Exception as e:
-                print(f"Error writing to log file: {e}")
+        if self.log_tx:
+            self._write_to_log(data)
     
     def is_connected(self) -> bool:
         """Check if serial port is connected.
@@ -132,17 +131,52 @@ class SerialBackend(BaseBackend):
         """
         return bytes(self.history_buffer)
     
-    def set_log_file(self, path: str) -> None:
-        """Set the path for session logging."""
+    def set_log_file(self, path: str, log_mode: str = "printable", log_tx: bool = True) -> None:
+        """Set the path and mode for session logging."""
         self.log_file = path
+        self.log_mode = log_mode
+        self.log_tx = log_tx
         try:
             # Ensure directory exists
             import os
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
             self.log_handle = open(path, 'ab')
-            print(f"Logging to {path}")
+            print(f"Logging to {path} ({log_mode} mode, log_tx={log_tx})")
         except Exception as e:
             print(f"Failed to open log file {path}: {e}")
+
+    def update_log_settings(self, log_mode: str, log_tx: bool) -> None:
+        """Update logging settings for the current session."""
+        self.log_mode = log_mode
+        self.log_tx = log_tx
+        print(f"Logging settings updated for {self.serial_port.port if self.serial_port else 'None'}: ({log_mode} mode, log_tx={log_tx})")
+
+    def _write_to_log(self, data: bytes) -> None:
+        """Write data to log file according to current log mode."""
+        if not self.log_handle:
+            return
+            
+        try:
+            if self.log_mode == "printable":
+                # 1. Remove ANSI escape sequences
+                # Heuristic: Find \x1b (27) followed by '[' (91) up to 'm', 'G', 'K', 'H', 'f', 'J', 'A', 'B', 'C', 'D'
+                # We work with bytes, so we need a byte regex or decode/encode
+                # Decoding as latin-1 is safe for byte manipulation
+                text = data.decode('latin-1')
+                # Comprehensive ANSI escape sequence regex
+                ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                text = ansi_escape.sub('', text)
+                
+                # 2. Only keep bytes that are printable ASCII (32-126) or common whitespace (9=\t, 10=\n, 13=\r)
+                filtered_data = bytes([b for b in text.encode('latin-1') if 32 <= b <= 126 or b in (9, 10, 13)])
+                if filtered_data:
+                    self.log_handle.write(filtered_data)
+            else:
+                self.log_handle.write(data)
+            
+            self.log_handle.flush()
+        except Exception as e:
+            print(f"Log write error: {e}")
     
     async def _read_loop(self) -> None:
         """Background task to read data from serial port."""
@@ -185,12 +219,7 @@ class SerialBackend(BaseBackend):
                     if self.data_callback:
                         self.data_callback(data)
                         
-                    if self.log_handle:
-                        try:
-                            self.log_handle.write(data)
-                            self.log_handle.flush()
-                        except Exception as e:
-                            print(f"Error writing to log file: {e}")
+                    self._write_to_log(data)
                 else:
                     # No data received, small sleep to prevent busy loop
                     await asyncio.sleep(0.01)

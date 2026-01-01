@@ -57,11 +57,23 @@ class BaseBackend(ABC):
         pass
 
     @abstractmethod
-    def set_log_file(self, path: str) -> None:
-        """Set the path for session logging.
+    def set_log_file(self, path: str, log_mode: str = "printable", log_tx: bool = True) -> None:
+        """Set the path and mode for session logging.
         
         Args:
             path: Path to the log file
+            log_mode: "printable" or "raw"
+            log_tx: Whether to log transmitted data
+        """
+        pass
+
+    @abstractmethod
+    def update_log_settings(self, log_mode: str, log_tx: bool) -> None:
+        """Update logging settings for the current session.
+        
+        Args:
+            log_mode: "printable" or "raw"
+            log_tx: Whether to log transmitted data
         """
         pass
 

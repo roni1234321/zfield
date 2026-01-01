@@ -14,6 +14,8 @@ class ConnectionRequest(BaseModel):
     baudrate: int = 115200
     connection_type: str = "serial"
     log_file: Optional[str] = None
+    log_mode: str = "printable"
+    log_tx: bool = True
 
 
 @router.get("/ports")
@@ -30,12 +32,25 @@ async def connect(request: ConnectionRequest):
         port=request.port,
         baudrate=request.baudrate,
         connection_type=request.connection_type,
-        log_file=request.log_file
+        log_file=request.log_file,
+        log_mode=request.log_mode,
+        log_tx=request.log_tx
     )
     if success:
         return {"status": "connected", "port": request.port}
     else:
         return {"status": "error", "message": "Failed to connect"}
+
+
+@router.post("/update_logging")
+async def update_logging(request: ConnectionRequest):
+    """Update logging settings for an active connection."""
+    port = request.port
+    if port in connection_manager.backends:
+        backend = connection_manager.backends[port]
+        backend.update_log_settings(request.log_mode, request.log_tx)
+        return {"status": "updated", "port": port}
+    return {"status": "error", "message": "Connection not found"}
 
 
 @router.post("/disconnect")

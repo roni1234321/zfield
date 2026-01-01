@@ -1,5 +1,6 @@
 """Telnet/TCP backend implementation."""
 import asyncio
+import re
 from typing import Optional, Callable
 from collections import deque
 from .base import BaseBackend
@@ -17,6 +18,8 @@ class TelnetBackend(BaseBackend):
         self.history_buffer = deque(maxlen=1024 * 100)  # Store last 100KB
         self.log_file: Optional[str] = None
         self.log_handle = None
+        self.log_mode = "printable"
+        self.log_tx = True
     
     async def connect(self, host: str, port: int, **kwargs) -> bool:
         """Connect to TCP server.
@@ -89,12 +92,8 @@ class TelnetBackend(BaseBackend):
         self.writer.write(data)
         await self.writer.drain()
         
-        if self.log_handle:
-            try:
-                self.log_handle.write(data)
-                self.log_handle.flush()
-            except Exception as e:
-                print(f"Error writing to log file: {e}")
+        if self.log_tx:
+            self._write_to_log(data)
     
     def is_connected(self) -> bool:
         """Check if backend is connected.
@@ -120,17 +119,50 @@ class TelnetBackend(BaseBackend):
         """
         return bytes(self.history_buffer)
         
-    def set_log_file(self, path: str) -> None:
-        """Set the path for session logging."""
+    def set_log_file(self, path: str, log_mode: str = "printable", log_tx: bool = True) -> None:
+        """Set the path and mode for session logging."""
         self.log_file = path
+        self.log_mode = log_mode
+        self.log_tx = log_tx
         try:
             # Ensure directory exists
             import os
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
             self.log_handle = open(path, 'ab')
-            print(f"Logging to {path}")
+            print(f"Logging to {path} ({log_mode} mode, log_tx={log_tx})")
         except Exception as e:
             print(f"Failed to open log file {path}: {e}")
+
+    def update_log_settings(self, log_mode: str, log_tx: bool) -> None:
+        """Update logging settings for the current session."""
+        self.log_mode = log_mode
+        self.log_tx = log_tx
+        print(f"Logging settings updated for Telnet: ({log_mode} mode, log_tx={log_tx})")
+
+    def _write_to_log(self, data: bytes) -> None:
+        """Write data to log file according to current log mode."""
+        if not self.log_handle:
+            return
+            
+        try:
+            if self.log_mode == "printable":
+                # 1. Remove ANSI escape sequences
+                # Decoding as latin-1 is safe for byte manipulation
+                text = data.decode('latin-1')
+                # Comprehensive ANSI escape sequence regex
+                ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                text = ansi_escape.sub('', text)
+                
+                # 2. Only keep bytes that are printable ASCII (32-126) or common whitespace (9=\t, 10=\n, 13=\r)
+                filtered_data = bytes([b for b in text.encode('latin-1') if 32 <= b <= 126 or b in (9, 10, 13)])
+                if filtered_data:
+                    self.log_handle.write(filtered_data)
+            else:
+                self.log_handle.write(data)
+            
+            self.log_handle.flush()
+        except Exception as e:
+            print(f"Log write error: {e}")
         
     async def _read_loop(self) -> None:
         """Background task to read data from connection."""
@@ -154,12 +186,7 @@ class TelnetBackend(BaseBackend):
                 if self.data_callback:
                     self.data_callback(data)
                     
-                if self.log_handle:
-                    try:
-                        self.log_handle.write(data)
-                        self.log_handle.flush()
-                    except Exception as e:
-                        print(f"Error writing to log file: {e}")
+                self._write_to_log(data)
                         
             except asyncio.CancelledError:
                 print("Read loop cancelled")

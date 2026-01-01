@@ -12,7 +12,7 @@ class ConnectionManager:
         # Map port names to Backend instances
         self.backends: dict[str, BaseBackend] = {}
     
-    async def connect(self, port: str, baudrate: int = 115200, connection_type: str = "serial", log_file: Optional[str] = None, **kwargs) -> bool:
+    async def connect(self, port: str, baudrate: int = 115200, connection_type: str = "serial", log_file: Optional[str] = None, log_mode: str = "printable", log_tx: bool = True, **kwargs) -> bool:
         """Connect to a specific serial port or telnet host.
         
         Args:
@@ -47,7 +47,7 @@ class ConnectionManager:
         if success:
             if log_file:
                 formatted_log_path = self._format_log_path(log_file, port, connection_type, baudrate)
-                backend.set_log_file(formatted_log_path)
+                backend.set_log_file(formatted_log_path, log_mode, log_tx)
                 
             self.backends[port] = backend
             return True
