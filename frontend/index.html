@@ -1586,7 +1586,7 @@
 
                                 <!-- TRAFFIC LIGHT COUNTER -->
                                 <template x-if="counter.type === 'traffic'">
-                                    <div class="flex flex-col flex-1 min-w-0 gap-1">
+                                    <div class="flex flex-col flex-1 min-w-0 gap-1 justify-center">
                                         <div class="flex items-center gap-1">
                                             <span class="text-[9px] text-gray-500 dark:text-slate-500 w-8">Green:</span>
                                             <input type="text" x-model="counter.greenText" @input="saveCounters()"
@@ -1615,7 +1615,7 @@
 
                                 <!-- LOG SLICER COUNTER -->
                                 <template x-if="counter.type === 'slicer'">
-                                    <div class="flex flex-col flex-1 min-w-0 gap-1">
+                                    <div class="flex flex-col flex-1 min-w-0 gap-1 justify-center">
                                         <div class="flex items-center gap-1">
                                             <span
                                                 class="text-[9px] text-gray-500 dark:text-slate-500 w-10">Start:</span>
@@ -1645,7 +1645,7 @@
                                 </template>
 
                                 <template x-if="counter.type === 'traffic'">
-                                    <div class="text-2xl flex-shrink-0 transition-all duration-300 self-center"
+                                    <div class="text-4xl flex-shrink-0 transition-all duration-300 self-center"
                                         :class="counter.justUpdated ? 'scale-125' : ''">
                                         <span x-show="counter.state === 'green'">🟢</span>
                                         <span x-show="counter.state === 'yellow' || !counter.state">🟡</span>
