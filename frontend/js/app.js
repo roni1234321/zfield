@@ -73,6 +73,7 @@ function terminalApp() {
         discoveringSubcommands: {},
         discoveryProgress: { current: 0, total: 0 },
         discoveryStartTime: null,
+        discoveryTimeoutThreshold: 60000,
         showDiscoveryConfirm: false,
         discoveryPaused: false,
         discoveryCancelRequested: false,
@@ -1891,6 +1892,7 @@ function terminalApp() {
                 this.commandDiscoveryInProgress = true;
                 this.discoveryCollectedData = '';
                 this.discoveryStartTime = Date.now();
+                this.discoveryTimeoutThreshold = 60000;
                 this.showDiscoveryConfirm = false;
                 this.discoveryCancelRequested = false;
                 this.discoveryPaused = false;
@@ -1950,8 +1952,8 @@ function terminalApp() {
         async discoverDeep(command) {
             if (this.discoveryCancelRequested) return;
 
-            // Check for 60-second timeout
-            if (!this.showDiscoveryConfirm && (Date.now() - this.discoveryStartTime > 60000)) {
+            // Check for timeout
+            if (!this.showDiscoveryConfirm && (Date.now() - this.discoveryStartTime > this.discoveryTimeoutThreshold)) {
                 this.showDiscoveryConfirm = true;
                 this.discoveryPaused = true;
 
@@ -2006,6 +2008,8 @@ function terminalApp() {
 
         continueDiscovery() {
             this.showDiscoveryConfirm = false;
+            this.discoveryStartTime = Date.now(); // Reset the timer
+            this.discoveryTimeoutThreshold = 30000; // Set next alert to 30s
             this.discoveryPaused = false;
         },
 
