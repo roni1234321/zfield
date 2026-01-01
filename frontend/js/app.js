@@ -524,9 +524,19 @@ function terminalApp() {
                 this.sessions = [];
                 this.layoutGroups = [];
                 this.savedCommands = [];
+                this.commands = [];
+                this.repeatCommands = [];
+                this.responseSequences = [];
+                this.counters = [];
+                this.lastScannedTime = null;
                 this.activeView = 'commands';
                 this.currentPort = '';
                 this.baudrate = 115200;
+
+                // Update local storage caches
+                this.saveCachedCommands([]);
+                this.saveCounters();
+                this.saveResponseSequences();
                 // Keep theme as is, or reset? Let's keep it.
             }
         },
@@ -558,11 +568,16 @@ function terminalApp() {
                     repeatCommands: this.repeatCommands,
                     responseSequences: this.responseSequences,
                     commands: this.commands,
+                    lastScannedTime: this.lastScannedTime,
                     counters: this.counters
                 }
             };
 
-            const content = JSON.stringify(project, null, 2);
+            // Use a replacer to avoid circular references if they exist
+            const content = JSON.stringify(project, (key, value) => {
+                if (key === 'parentCmd') return undefined;
+                return value;
+            }, 2);
 
             // Use File System Access API if available
             if (window.showSaveFilePicker) {
@@ -638,6 +653,7 @@ function terminalApp() {
 
                     if (project.data.commands) {
                         this.commands = project.data.commands;
+                        this.lastScannedTime = project.data.lastScannedTime || Date.now();
                         this.saveCachedCommands(this.commands);
                     }
                     if (project.data.counters) {
