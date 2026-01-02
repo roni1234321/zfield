@@ -246,6 +246,9 @@
                         style="display: none;">
                         <button @click="showAbout = true; closeMenu()"
                             class="w-full text-left px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">About</button>
+                        <button @click="showToast('Test Toast!', 'success'); closeMenu()"
+                            class="w-full text-left px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">Test
+                            Toast</button>
                         <button
                             @click="window.open('https://docs.zephyrproject.org/latest/index.html', '_blank'); closeMenu()"
                             class="w-full text-left px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">Zephyr
@@ -1979,7 +1982,7 @@
                 <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
                     x-transition:enter-start="translate-x-full opacity-0"
                     x-transition:enter-end="translate-x-0 opacity-100"
-                    x-transition:leave="transition ease-in duration-200"
+                    x-transition:leave="transition ease-in duration-300"
                     x-transition:leave-start="translate-x-0 opacity-100"
                     x-transition:leave-end="translate-x-full opacity-0"
                     class="pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg border max-w-sm"

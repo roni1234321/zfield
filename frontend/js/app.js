@@ -380,7 +380,7 @@ function terminalApp() {
                 id,
                 message,
                 type, // 'success', 'error', 'info', 'warning'
-                show: true
+                show: false // Start hidden for animation
             };
 
             // Add new toast
@@ -391,6 +391,12 @@ function terminalApp() {
                 this.toasts.shift();
             }
 
+            // Show toast after a tiny delay to trigger animation
+            setTimeout(() => {
+                const toastObj = this.toasts.find(t => t.id === id);
+                if (toastObj) toastObj.show = true;
+            }, 10);
+
             // Auto-dismiss after duration
             setTimeout(() => {
                 this.dismissToast(id);
@@ -398,9 +404,18 @@ function terminalApp() {
         },
 
         dismissToast(id) {
-            const index = this.toasts.findIndex(t => t.id === id);
-            if (index !== -1) {
-                this.toasts.splice(index, 1);
+            const toast = this.toasts.find(t => t.id === id);
+            if (toast) {
+                // Trigger leave animation
+                toast.show = false;
+
+                // Remove from array after animation completes (500ms)
+                setTimeout(() => {
+                    const index = this.toasts.findIndex(t => t.id === id);
+                    if (index !== -1) {
+                        this.toasts.splice(index, 1);
+                    }
+                }, 300);
             }
         },
 
