@@ -27,20 +27,34 @@ def kill_previous_instance():
             with open(pid_file, 'r') as f:
                 old_pid = int(f.read().strip())
             
-            # Check if process exists and kill it
+            # Check if process exists
             try:
-                os.kill(old_pid, signal.SIGTERM)
-                print(f"Killed previous instance (PID: {old_pid})")
-                time.sleep(1)  # Wait for process to terminate
+                if sys.platform == 'win32':
+                    # Windows: use taskkill
+                    import subprocess
+                    subprocess.run(['taskkill', '/F', '/PID', str(old_pid)], 
+                                 capture_output=True, check=False)
+                    print(f"Killed previous instance (PID: {old_pid})")
+                else:
+                    # Unix: use SIGTERM
+                    os.kill(old_pid, signal.SIGTERM)
+                    print(f"Killed previous instance (PID: {old_pid})")
+                
+                time.sleep(2)  # Wait longer for process to fully terminate
             except ProcessLookupError:
                 # Process doesn't exist anymore
                 pass
-        except (ValueError, FileNotFoundError):
-            pass
+            except Exception as e:
+                print(f"Warning: Could not kill previous instance: {e}")
+        except (ValueError, FileNotFoundError) as e:
+            print(f"Warning: Could not read PID file: {e}")
     
     # Write current PID
-    with open(pid_file, 'w') as f:
-        f.write(str(os.getpid()))
+    try:
+        with open(pid_file, 'w') as f:
+            f.write(str(os.getpid()))
+    except Exception as e:
+        print(f"Warning: Could not write PID file: {e}")
 
 def cleanup_pid_file():
     """Remove PID file on exit."""
