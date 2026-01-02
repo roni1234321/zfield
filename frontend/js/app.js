@@ -108,6 +108,11 @@ function terminalApp() {
         showCounters: true,
         counterPanelHeight: 'normal', // 'normal' or 'large'
         lastCounterUpdate: {}, // Store session-specific last chunks for split-text matching
+
+        // Toast Notification State
+        toasts: [],
+        nextToastId: 1,
+
         // Response Sequences State
         responseSequences: [],
         showResponseSequenceModal: false,
@@ -365,6 +370,37 @@ function terminalApp() {
                 this.counters.forEach(c => c.count = 0);
                 this.saveCounters();
                 this.showStatus('All counters reset', 'success');
+            }
+        },
+
+        // Toast Notification Functions
+        showToast(message, type = 'info', duration = 3000) {
+            const id = this.nextToastId++;
+            const toast = {
+                id,
+                message,
+                type, // 'success', 'error', 'info', 'warning'
+                show: true
+            };
+
+            // Add new toast
+            this.toasts.push(toast);
+
+            // If more than 3 toasts, remove the oldest
+            if (this.toasts.length > 3) {
+                this.toasts.shift();
+            }
+
+            // Auto-dismiss after duration
+            setTimeout(() => {
+                this.dismissToast(id);
+            }, duration);
+        },
+
+        dismissToast(id) {
+            const index = this.toasts.findIndex(t => t.id === id);
+            if (index !== -1) {
+                this.toasts.splice(index, 1);
             }
         },
 
@@ -1516,8 +1552,7 @@ function terminalApp() {
 
             session.ws.onopen = () => {
                 console.log(`WebSocket connected for ${session.port}`);
-                // WebSocket connected successfully
-
+                this.showToast(`Connected to ${session.port}`, 'success');
                 // Removed automatic \r on connect to avoid prompt flooding on refresh
             };
 
@@ -1531,6 +1566,7 @@ function terminalApp() {
                         const data = JSON.parse(event.data);
                         if (data.type === 'error') {
                             if (session.terminal) session.terminal.writeln('\r\n[Error] ' + data.message);
+                            this.showToast(data.message, 'error');
                         }
                         return;
                     } catch (e) { }
@@ -1554,7 +1590,7 @@ function terminalApp() {
 
             session.ws.onclose = () => {
                 console.log(`WebSocket disconnected for ${session.port}`);
-                // WebSocket closed
+                this.showToast(`Disconnected from ${session.port}`, 'warning');
             };
         },
 
@@ -1573,10 +1609,9 @@ function terminalApp() {
                 if (session.ws) session.ws.close();
                 session.connected = false;
                 this.connected = false; // Sync for global UI
-                this.showStatus('Disconnected from ' + session.port, 'info');
             } catch (error) {
                 console.error('Error disconnecting:', error);
-                this.showStatus('Error disconnecting: ' + error.message, 'error');
+                this.showToast('Error disconnecting: ' + error.message, 'error');
             }
         },
 
@@ -1605,13 +1640,20 @@ function terminalApp() {
             const state = this.connectButtonState;
             let portToConnect;
 
+
             if (this.connectionMode === 'telnet') {
                 portToConnect = `${this.telnetHost}:${this.telnetPort}`;
             } else {
                 portToConnect = this.manualPort || this.selectedPort;
             }
 
-            if (state === 'switch' || (this.connected && portToConnect === this.currentPort)) {
+            // Check for disconnect FIRST
+            if (state === 'disconnect') {
+                await this.disconnect();
+                return;
+            }
+
+            if (state === 'switch' || (this.connected && portToConnect === this.currentPort && this.sessions.find(s => s.port === portToConnect && s.connected))) {
                 // Update logging settings if already connected
                 try {
                     await fetch('/api/update_logging', {
@@ -1625,7 +1667,7 @@ function terminalApp() {
                     });
                     localStorage.setItem('zdm_log_mode', this.logMode);
                     localStorage.setItem('zdm_omit_sent', this.omitSent);
-                    this.showStatus('Logging settings updated', 'success');
+                    this.showToast('Logging settings updated', 'success');
                 } catch (e) {
                     console.error('Failed to update logging settings:', e);
                 }
@@ -1639,13 +1681,8 @@ function terminalApp() {
                 return;
             }
 
-            if (state === 'disconnect') {
-                await this.disconnect();
-                return;
-            }
-
             if (!portToConnect) {
-                this.showStatus('Please select or enter a serial port', 'error');
+                this.showToast('Please select or enter a serial port', 'error');
                 return;
             }
 
@@ -1681,59 +1718,74 @@ function terminalApp() {
                 const data = await response.json();
 
                 if (data.status === 'connected') {
-                    // Create new session
-                    const sessionId = 'session_' + Date.now();
-                    const newSession = {
-                        id: sessionId,
-                        port: portToConnect,
-                        baudrate: parseInt(this.baudRate) || 115200,
-                        connected: true,
-                        terminal: null,
-                        fitAddon: null,
-                        ws: null,
-                        promptBuffer: ''
-                    };
+                    // Check if session for this port already exists
+                    let session = this.sessions.find(s => s.port === portToConnect);
 
-                    this.sessions.push(newSession);
-
-                    // Add to active group or create one
-                    if (this.layoutGroups.length === 0) {
-                        this.layoutGroups.push({
-                            id: 'group_default',
-                            sessionIds: [sessionId],
-                            activeSessionId: sessionId
-                        });
+                    if (session) {
+                        // Reuse existing session
+                        session.connected = true;
+                        session.baudrate = parseInt(this.baudRate) || 115200;
+                        this.activeSessionId = session.id;
                     } else {
-                        // Find group containing currently active session or just use the first one
-                        const activeGroup = this.layoutGroups.find(g => g.activeSessionId === this.activeSessionId) || this.layoutGroups[0];
-                        activeGroup.sessionIds.push(sessionId);
-                        activeGroup.activeSessionId = sessionId;
-                    }
+                        // Create new session
+                        const sessionId = 'session_' + Date.now();
+                        session = {
+                            id: sessionId,
+                            port: portToConnect,
+                            baudrate: parseInt(this.baudRate) || 115200,
+                            connected: true,
+                            terminal: null,
+                            fitAddon: null,
+                            ws: null,
+                            promptBuffer: ''
+                        };
 
-                    this.activeSessionId = sessionId;
+                        this.sessions.push(session);
+
+                        // Add to active group or create one
+                        if (this.layoutGroups.length === 0) {
+                            this.layoutGroups.push({
+                                id: 'group_default',
+                                sessionIds: [sessionId],
+                                activeSessionId: sessionId
+                            });
+                        } else {
+                            // Find group containing currently active session or just use the first one
+                            const activeGroup = this.layoutGroups.find(g => g.activeSessionId === this.activeSessionId) || this.layoutGroups[0];
+                            activeGroup.sessionIds.push(sessionId);
+                            activeGroup.activeSessionId = sessionId;
+                        }
+
+                        this.activeSessionId = sessionId;
+                    }
                     this.connected = true;
                     this.currentPort = portToConnect;
                     this.showSettings = false;
                     this.activeView = 'commands';
 
-                    // Initialize terminal
+                    // Initialize terminal (only if terminal doesn't exist yet)
                     this.$nextTick(() => {
-                        const initResult = this.initTerminal(newSession, `terminal-${sessionId}`);
-                        if (initResult) {
-                            newSession.terminal = initResult.term;
-                            newSession.fitAddon = initResult.fitAddon;
-                            this.connectWebSocket(newSession);
+                        if (!session.terminal) {
+                            const initResult = this.initTerminal(session, `terminal-${session.id}`);
+                            if (initResult) {
+                                session.terminal = initResult.term;
+                                session.fitAddon = initResult.fitAddon;
+                                this.connectWebSocket(session);
+                            }
+                        } else {
+                            // Reconnect WebSocket for existing terminal
+                            this.connectWebSocket(session);
                         }
                     });
 
-                    this.showStatus('Connected to ' + portToConnect, 'success');
+                    // Connection success toast handled by ws.onopen
                     this.saveSessionState();
                 } else {
-                    this.showStatus('Failed to connect: ' + (data.message || 'Unknown error'), 'error');
+                    this.showToast('Failed to connect: ' + (data.message || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error connecting:', error);
-                this.showStatus('Error connecting: ' + error.message, 'error');
+                this.showToast('Error connecting: ' + error.message, 'error');
             } finally {
                 this.connecting = false;
             }
