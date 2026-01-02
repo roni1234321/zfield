@@ -19,6 +19,7 @@ REM Build the executable
 pyinstaller zdm_gui.spec
 
 echo.
-echo Build complete! Executable is in dist\zdm.exe
+echo Build complete! Executable is in dist\zdm\
+echo Run with: dist\zdm\zdm.exe
 echo.
 pause

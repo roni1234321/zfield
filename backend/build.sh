@@ -18,5 +18,6 @@ rm -rf build dist
 pyinstaller zdm_gui.spec
 
 echo ""
-echo "Build complete! Executable is in dist/zdm"
+echo "Build complete! Executable is in dist/zdm/"
+echo "Run with: ./dist/zdm/zdm"
 echo ""

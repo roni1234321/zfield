@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Zephyr Device Manager
+Comment=Serial terminal and device manager for Zephyr RTOS development
+Exec=/opt/zdm/zdm
+Icon=zdm
+Terminal=false
+Categories=Development;Utility;
+Keywords=serial;terminal;zephyr;embedded;development;
+StartupNotify=true
+StartupWMClass=zdm
