@@ -25,6 +25,10 @@ if os.path.exists(f'{frontend_path}/assets'):
 if os.path.exists(f'{frontend_path}/icon.png'):
     frontend_datas.append((f'{frontend_path}/icon.png', 'frontend'))
 
+# Add logo
+if os.path.exists(f'{frontend_path}/logo.png'):
+    frontend_datas.append((f'{frontend_path}/logo.png', 'frontend'))
+
 a = Analysis(
     ['gui.py'],
     pathex=[],
@@ -82,6 +86,7 @@ exe = EXE(
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
+    icon='../frontend/logo.png',
 )
 
 # COLLECT block removed for single-file mode
