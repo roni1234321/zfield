@@ -13,15 +13,15 @@ echo.
 REM Change to backend directory
 cd /d "%~dp0..\.."
 
-@REM REM Step 1: Build the PyInstaller executable
-@REM echo [1/4] Building PyInstaller executable...
-@REM call build.bat
-@REM if errorlevel 1 (
-@REM     echo ERROR: PyInstaller build failed!
-@REM     pause
-@REM     exit /b 1
-@REM )
-@REM echo.
+REM Step 1: Build the PyInstaller executable
+echo [1/4] Building PyInstaller executable...
+call build.bat
+if errorlevel 1 (
+    echo ERROR: PyInstaller build failed!
+    if not defined SKIP_PAUSE pause
+    exit /b 1
+)
+echo.
 
 REM Step 2: Convert logo to ICO format
 echo [2/4] Converting logo to ICO format...
