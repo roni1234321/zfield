@@ -1,5 +1,5 @@
 @echo off
-REM Start script for ZDM backend (Windows)
+REM Start script for ZField backend (Windows)
 
 REM Check if virtual environment exists
 if not exist "venv" (
@@ -15,6 +15,6 @@ echo Installing dependencies...
 pip install -r requirements.txt
 
 REM Start the server
-echo Starting ZDM backend server...
+echo Starting ZField backend server...
 python -m app.startup
 

@@ -16,7 +16,7 @@ build_msi.bat
 
 ### Output
 ```
-backend\dist\installers\zdm-setup-0.1.0.exe
+backend\dist\installers\zfield-setup-0.1.0.exe
 ```
 
 ---
@@ -37,18 +37,18 @@ bash build_deb.sh
 
 ### Output
 ```
-backend/dist/installers/zdm_0.1.0_amd64.deb
+backend/dist/installers/zfield_0.1.0_amd64.deb
 ```
 
 ### Install
 ```bash
-sudo dpkg -i ../../dist/installers/zdm_0.1.0_amd64.deb
+sudo dpkg -i ../../dist/installers/zfield_0.1.0_amd64.deb
 sudo apt-get install -f  # Fix dependencies if needed
 ```
 
 ### Uninstall
 ```bash
-sudo apt remove zdm
+sudo apt remove zfield
 ```
 
 ---
@@ -59,14 +59,14 @@ sudo apt remove zdm
 ```bash
 cd backend
 bash build.sh
-./dist/zdm/zdm
+./dist/zfield/zfield
 ```
 
 ### Windows
 ```batch
 cd backend
 build.bat
-dist\zdm\zdm.exe
+dist\zfield\zfield.exe
 ```
 
 ---
@@ -85,15 +85,15 @@ This updates version for all packages automatically.
 ## File Locations After Installation
 
 ### Windows
-- **Executable**: `C:\Program Files\Zephyr Device Manager\`
-- **Start Menu**: Zephyr Device Manager
+- **Executable**: `C:\Program Files\ZField\`
+- **Start Menu**: ZField
 - **Desktop**: Optional shortcut
 
 ### Linux
-- **Executable**: `/opt/zdm/`
-- **CLI Command**: `zdm` (symlinked from `/usr/bin/zdm`)
-- **Desktop File**: `/usr/share/applications/zdm.desktop`
-- **Icon**: `/usr/share/icons/hicolor/256x256/apps/zdm.png`
+- **Executable**: `/opt/zfield/`
+- **CLI Command**: `zfield` (symlinked from `/usr/bin/zfield`)
+- **Desktop File**: `/usr/share/applications/zfield.desktop`
+- **Icon**: `/usr/share/icons/hicolor/256x256/apps/zfield.png`
 
 ---
 

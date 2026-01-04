@@ -90,9 +90,9 @@ Some commands support nested help:
 uart:~$ log backend --help
 ```
 
-## Implementation in ZDM
+## Implementation in ZField
 
-### How ZDM Discovers Subcommands
+### How ZField Discovers Subcommands
 
 1. **Initial Scan:**
    ```javascript
@@ -116,11 +116,11 @@ uart:~$ log backend --help
 ```
 User clicks "Check for subcommands" on 'log' command
   ↓
-ZDM sends: "log --help\n"
+ZField sends: "log --help\n"
   ↓
 Device responds with help text
   ↓
-ZDM parses subcommands (backend, disable, enable)
+ZField parses subcommands (backend, disable, enable)
   ↓
 Arrow (►) appears next to 'log' command
   ↓
@@ -220,7 +220,7 @@ Check the command's documentation or source code.
 
 ### Supported Help Formats
 
-The ZDM parser supports multiple help text formats:
+The ZField parser supports multiple help text formats:
 
 **Format 1: With colon**
 ```
@@ -259,7 +259,7 @@ Options:
    <command> --help
    ```
 
-2. **Check for subcommands in ZDM:**
+2. **Check for subcommands in ZField:**
    - Click "Check for subcommands" button
    - Or use the demo to see examples
 
@@ -293,7 +293,7 @@ Options:
 
 - [Zephyr Shell Documentation](https://docs.zephyrproject.org/latest/services/shell/index.html)
 - [Zephyr Shell API](https://docs.zephyrproject.org/latest/doxygen/html/group__shell.html)
-- ZDM Command Discovery Documentation: `COMMAND_DISCOVERY.md`
+- ZField Command Discovery Documentation: `COMMAND_DISCOVERY.md`
 
 ## Quick Reference Card
 

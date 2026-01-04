@@ -1,7 +1,7 @@
-# Zephyr Device Manager (ZDM) - Architecture Document
+# ZField - Architecture Document
 
 ## Overview
-ZDM is a web-based serial terminal application designed for Zephyr RTOS development and debugging. It provides real-time serial communication, Zephyr shell support, command parsing, and extensible backend support for various communication protocols.
+ZField is a web-based serial terminal application designed for Zephyr RTOS development and debugging. It provides real-time serial communication, Zephyr shell support, command parsing, and extensible backend support for various communication protocols.
 
 ## Tech Stack
 
@@ -309,7 +309,7 @@ ZDM is a web-based serial terminal application designed for Zephyr RTOS developm
 ## File Structure
 
 ```
-zdm/
+zfield/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py

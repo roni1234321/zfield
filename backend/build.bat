@@ -1,7 +1,7 @@
 @echo off
 REM Build script for Windows
 
-echo Building Zephyr Device Manager executable...
+echo Building ZField executable...
 
 REM Activate virtual environment if it exists
 if exist venv\Scripts\activate.bat (
@@ -16,10 +16,10 @@ if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 
 REM Build the executable
-pyinstaller zdm_gui.spec
+pyinstaller zfield_gui.spec
 
 echo.
-echo Build complete! Executable is in dist\zdm\
-echo Run with: dist\zdm\zdm.exe
+echo Build complete! Executable is in dist\zfield\
+echo Run with: dist\zfield\zfield.exe
 echo.
 pause

@@ -5,7 +5,7 @@
 set -e  # Exit on error
 
 echo "========================================"
-echo "Building Zephyr Device Manager DEB Package"
+echo "Building ZField DEB Package"
 echo "========================================"
 echo
 
@@ -24,9 +24,9 @@ echo
 
 # Step 2: Create temporary package structure
 echo "[2/5] Creating package structure..."
-PKG_DIR="dist/zdm-package"
+PKG_DIR="dist/zfield-package"
 rm -rf "$PKG_DIR"
-mkdir -p "$PKG_DIR/opt/zdm"
+mkdir -p "$PKG_DIR/opt/zfield"
 mkdir -p "$PKG_DIR/usr/share/applications"
 mkdir -p "$PKG_DIR/usr/share/icons/hicolor/256x256/apps"
 mkdir -p "$PKG_DIR/usr/bin"
@@ -35,16 +35,16 @@ echo
 # Step 3: Copy files to package structure
 echo "[3/5] Copying files..."
 # Copy the entire PyInstaller dist directory
-cp -r dist/zdm/* "$PKG_DIR/opt/zdm/"
+cp -r dist/zfield/* "$PKG_DIR/opt/zfield/"
 
 # Copy desktop file
-cp packaging/linux/zdm.desktop "$PKG_DIR/usr/share/applications/"
+cp packaging/linux/zfield.desktop "$PKG_DIR/usr/share/applications/"
 
 # Copy icon
-cp ../frontend/logo.png "$PKG_DIR/usr/share/icons/hicolor/256x256/apps/zdm.png"
+cp ../frontend/logo.png "$PKG_DIR/usr/share/icons/hicolor/256x256/apps/zfield.png"
 
 # Create symlink in /usr/bin
-ln -sf /opt/zdm/zdm "$PKG_DIR/usr/bin/zdm"
+ln -sf /opt/zfield/zfield "$PKG_DIR/usr/bin/zfield"
 echo
 
 # Step 4: Create installers directory
@@ -63,12 +63,12 @@ if ! command -v fpm &> /dev/null; then
 fi
 
 fpm -s dir -t deb \
-    -n zdm \
+    -n zfield \
     -v "$VERSION" \
     --vendor "Your Organization" \
     --maintainer "your-email@example.com" \
     --description "Serial terminal and device manager for Zephyr RTOS development" \
-    --url "https://github.com/yourusername/zdm" \
+    --url "https://github.com/yourusername/zfield" \
     --license "MIT" \
     --category "devel" \
     --architecture amd64 \
@@ -78,16 +78,16 @@ fpm -s dir -t deb \
     --after-install packaging/linux/postinstall.sh \
     --after-remove packaging/linux/postremove.sh \
     -C "$PKG_DIR" \
-    --package "dist/installers/zdm_${VERSION}_amd64.deb" \
+    --package "dist/installers/zfield_${VERSION}_amd64.deb" \
     .
 
 echo
 echo "========================================"
 echo "Build Complete!"
 echo "========================================"
-echo "Package location: dist/installers/zdm_${VERSION}_amd64.deb"
+echo "Package location: dist/installers/zfield_${VERSION}_amd64.deb"
 echo
 echo "To install:"
-echo "  sudo dpkg -i dist/installers/zdm_${VERSION}_amd64.deb"
+echo "  sudo dpkg -i dist/installers/zfield_${VERSION}_amd64.deb"
 echo "  sudo apt-get install -f  # Fix dependencies if needed"
 echo

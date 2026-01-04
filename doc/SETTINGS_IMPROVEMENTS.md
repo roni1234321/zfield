@@ -36,7 +36,7 @@ Two quality-of-life improvements have been added to the settings sidebar:
 ```javascript
 // In saveSettings()
 if (this.manualPort) {
-    localStorage.setItem('zdm_manual_port', this.manualPort);
+    localStorage.setItem('zfield_manual_port', this.manualPort);
     console.log('Saved manual port to localStorage:', this.manualPort);
 }
 ```
@@ -44,7 +44,7 @@ if (this.manualPort) {
 **Load on Init:**
 ```javascript
 // In init()
-const savedManualPort = localStorage.getItem('zdm_manual_port');
+const savedManualPort = localStorage.getItem('zfield_manual_port');
 if (savedManualPort) {
     this.manualPort = savedManualPort;
     console.log('Loaded saved manual port:', savedManualPort);
@@ -53,7 +53,7 @@ if (savedManualPort) {
 
 #### Storage Key
 
-- **Key:** `zdm_manual_port`
+- **Key:** `zfield_manual_port`
 - **Value:** String (e.g., `/dev/pts/12`)
 - **Location:** Browser localStorage
 
@@ -159,7 +159,7 @@ This uses Alpine.js's `.window` modifier to listen for Enter key globally when t
 
 ```javascript
 {
-    "zdm_manual_port": "/dev/pts/12"
+    "zfield_manual_port": "/dev/pts/12"
 }
 ```
 
@@ -209,10 +209,10 @@ The existing validation still applies:
 
 ```javascript
 // Save
-localStorage.setItem('zdm_baud_rate', this.baudRate);
+localStorage.setItem('zfield_baud_rate', this.baudRate);
 
 // Load
-const savedBaudRate = localStorage.getItem('zdm_baud_rate');
+const savedBaudRate = localStorage.getItem('zfield_baud_rate');
 if (savedBaudRate) {
     this.baudRate = savedBaudRate;
 }
@@ -230,7 +230,7 @@ if (savedBaudRate) {
 **Debug:**
 ```javascript
 // In browser console
-localStorage.getItem('zdm_manual_port')
+localStorage.getItem('zfield_manual_port')
 ```
 
 ### Issue: Enter Key Not Working
@@ -251,7 +251,7 @@ localStorage.getItem('zdm_manual_port')
 **Clear saved port:**
 ```javascript
 // In browser console
-localStorage.removeItem('zdm_manual_port')
+localStorage.removeItem('zfield_manual_port')
 ```
 
 ## Testing
@@ -273,7 +273,7 @@ localStorage.removeItem('zdm_manual_port')
 
 3. **Clear and verify:**
    ```javascript
-   localStorage.removeItem('zdm_manual_port')
+   localStorage.removeItem('zfield_manual_port')
    // Refresh page
    // Manual port should be empty
    ```

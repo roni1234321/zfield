@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build script for Linux/Mac
 
-echo "Building Zephyr Device Manager executable..."
+echo "Building ZField executable..."
 
 # Activate virtual environment if it exists
 if [ -f .venv/bin/activate ]; then
@@ -15,9 +15,9 @@ pip install pyinstaller
 rm -rf build dist
 
 # Build the executable
-pyinstaller zdm_gui.spec
+pyinstaller zfield_gui.spec
 
 echo ""
-echo "Build complete! Executable is in dist/zdm/"
-echo "Run with: ./dist/zdm/zdm"
+echo "Build complete! Executable is in dist/zfield/"
+echo "Run with: ./dist/zfield/zfield"
 echo ""

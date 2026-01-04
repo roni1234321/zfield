@@ -193,7 +193,7 @@ When the user clicks "Execute":
 ~/zephyrproject/apps/shell_module/build/zephyr/zephyr.exe
 
 # Connect to the pts (shown in output)
-# In ZDM, connect to that pts
+# In ZField, connect to that pts
 
 # Test commands with arguments:
 devmem 0x1000

@@ -1,4 +1,4 @@
-# Alpine.js Examples for ZDM
+# Alpine.js Examples for ZField
 
 This directory contains example files demonstrating Alpine.js capabilities for your Zephyr Device Manager terminal application.
 

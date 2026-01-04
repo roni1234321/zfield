@@ -4,7 +4,7 @@ REM Requires: Inno Setup (https://jrsoftware.org/isinfo.php)
 REM           Python with Pillow (pip install Pillow)
 
 echo ========================================
-echo Building Zephyr Device Manager Installer
+echo Building ZField Installer
 echo ========================================
 echo.
 
@@ -52,7 +52,7 @@ if %ISCC%=="" (
     exit /b 1
 )
 
-%ISCC% packaging\windows\zdm.iss
+%ISCC% packaging\windows\zfield.iss
 if errorlevel 1 (
     echo ERROR: Inno Setup compilation failed!
     pause
@@ -63,6 +63,6 @@ echo.
 echo ========================================
 echo Build Complete!
 echo ========================================
-echo Installer location: dist\installers\zdm-setup-0.1.0.exe
+echo Installer location: dist\installers\zfield-setup-0.1.0.exe
 echo.
 pause

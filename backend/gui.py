@@ -14,9 +14,9 @@ FIXED_PORT = 48715
 def get_pid_file():
     """Get the path to the PID file."""
     home = Path.home()
-    pid_dir = home / '.zdm'
+    pid_dir = home / '.zfield'
     pid_dir.mkdir(parents=True, exist_ok=True)
-    return pid_dir / 'zdm.pid'
+    return pid_dir / 'zfield.pid'
 
 def kill_previous_instance():
     """Kill any previous instance of the application."""
@@ -97,7 +97,7 @@ def wait_for_server(port, timeout=10):
 def get_storage_path():
     """Get the persistent storage path for webview data."""
     home = Path.home()
-    storage_dir = home / '.zdm' / 'storage'
+    storage_dir = home / '.zfield' / 'storage'
     storage_dir.mkdir(parents=True, exist_ok=True)
     return str(storage_dir)
 
@@ -129,7 +129,7 @@ def main():
     print(f"Using storage path: {storage_path}")
     
     window = webview.create_window(
-        'Zephyr Device Manager',
+        'ZField',
         url,
         width=1200,
         height=800,

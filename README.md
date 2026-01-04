@@ -1,8 +1,8 @@
-# Zephyr Device Manager (ZDM)
+# ZField
 
 A web-based serial terminal application for Zephyr RTOS development and debugging.
 
-![ZDM Screenshot](doc/image.png)
+![ZField Screenshot](doc/image.png)
 
 
 
@@ -24,7 +24,7 @@ A web-based serial terminal application for Zephyr RTOS development and debuggin
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd zdm
+cd zfield
 ```
 
 2. Create and activate a Python virtual environment:
@@ -125,7 +125,7 @@ deactivate
 ## Project Structure
 
 ```
-zdm/
+zfield/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI application

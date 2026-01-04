@@ -138,7 +138,7 @@ function terminalApp() {
             console.log("init() called");
 
             // Load theme
-            const savedTheme = localStorage.getItem('zdm_theme');
+            const savedTheme = localStorage.getItem('zfield_theme');
             if (savedTheme) {
                 this.theme = savedTheme;
             } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
@@ -147,7 +147,7 @@ function terminalApp() {
             this.updateThemeClass();
 
             // Load saved manual port from localStorage
-            const savedManualPort = localStorage.getItem('zdm_manual_port');
+            const savedManualPort = localStorage.getItem('zfield_manual_port');
             if (savedManualPort) {
                 this.manualPort = savedManualPort;
                 this.selectedPort = savedManualPort; // Sync with selectedPort so UI buttons work
@@ -155,17 +155,17 @@ function terminalApp() {
             }
 
             // Load saved log file name
-            const savedLogFile = localStorage.getItem('zdm_log_file_name');
+            const savedLogFile = localStorage.getItem('zfield_log_file_name');
             if (savedLogFile) {
                 this.logFileName = savedLogFile;
             }
 
-            const savedLogMode = localStorage.getItem('zdm_log_mode');
+            const savedLogMode = localStorage.getItem('zfield_log_mode');
             if (savedLogMode) {
                 this.logMode = savedLogMode;
             }
 
-            const savedOmitSent = localStorage.getItem('zdm_omit_sent');
+            const savedOmitSent = localStorage.getItem('zfield_omit_sent');
             if (savedOmitSent !== null) {
                 this.omitSent = savedOmitSent === 'true';
             }
@@ -180,7 +180,7 @@ function terminalApp() {
             this.initRepeatCommands();
 
             // Load saved sidebar width
-            const savedWidth = localStorage.getItem('zdm_sidebar_width');
+            const savedWidth = localStorage.getItem('zfield_sidebar_width');
             if (savedWidth) {
                 this.sidebarWidth = parseInt(savedWidth);
             }
@@ -201,18 +201,18 @@ function terminalApp() {
 
 
             // Welcome Modal for first timers
-            if (!localStorage.getItem('zdm_welcome_shown')) {
+            if (!localStorage.getItem('zfield_welcome_shown')) {
                 this.showWelcomeModal = true;
             }
 
             // Load saved view
-            const savedView = localStorage.getItem('zdm_active_view');
+            const savedView = localStorage.getItem('zfield_active_view');
             if (savedView) {
                 this.activeView = savedView;
             }
 
             // Load sidebar icon order
-            const savedIconOrder = localStorage.getItem('zdm_icon_order');
+            const savedIconOrder = localStorage.getItem('zfield_icon_order');
             if (savedIconOrder) {
                 try {
                     const order = JSON.parse(savedIconOrder);
@@ -224,7 +224,7 @@ function terminalApp() {
 
             // Watch for view changes to save
             this.$watch('activeView', (value) => {
-                localStorage.setItem('zdm_active_view', value);
+                localStorage.setItem('zfield_active_view', value);
             });
 
             // Load app version
@@ -240,7 +240,7 @@ function terminalApp() {
 
         // Initialize Repeat Commands from localStorage
         initRepeatCommands() {
-            const saved = localStorage.getItem('zdm_repeat_commands');
+            const saved = localStorage.getItem('zfield_repeat_commands');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -260,13 +260,13 @@ function terminalApp() {
             const toSave = this.repeatCommands.map(({ id, name, command, interval }) => ({
                 id, name, command, interval
             }));
-            localStorage.setItem('zdm_repeat_commands', JSON.stringify(toSave));
+            localStorage.setItem('zfield_repeat_commands', JSON.stringify(toSave));
         },
 
         // ============ COUNTER METHODS ============
 
         loadCounters() {
-            const saved = localStorage.getItem('zdm_counters');
+            const saved = localStorage.getItem('zfield_counters');
             if (saved) {
                 try {
                     this.counters = JSON.parse(saved).map(c => {
@@ -313,7 +313,7 @@ function terminalApp() {
                 }
                 return base;
             });
-            localStorage.setItem('zdm_counters', JSON.stringify(toSave));
+            localStorage.setItem('zfield_counters', JSON.stringify(toSave));
         },
 
         addCounter(type = 'text') {
@@ -421,7 +421,7 @@ function terminalApp() {
 
         closeWelcomeModal() {
             this.showWelcomeModal = false;
-            localStorage.setItem('zdm_welcome_shown', 'true');
+            localStorage.setItem('zfield_welcome_shown', 'true');
         },
 
         updateCounters(sessionId, rawData) {
@@ -716,7 +716,7 @@ function terminalApp() {
 
         toggleTheme() {
             this.theme = this.theme === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('zdm_theme', this.theme);
+            localStorage.setItem('zfield_theme', this.theme);
             this.updateThemeClass();
             this.refreshTerminalThemes();
         },
@@ -1001,7 +1001,7 @@ function terminalApp() {
             this.isResizing = false;
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
-            localStorage.setItem('zdm_sidebar_width', this.sidebarWidth);
+            localStorage.setItem('zfield_sidebar_width', this.sidebarWidth);
             this.resizeTerminal();
         },
 
@@ -1023,7 +1023,7 @@ function terminalApp() {
                 const data = await response.json();
                 if (data.path) {
                     this.logFileName = data.path;
-                    localStorage.setItem('zdm_log_file_name', this.logFileName);
+                    localStorage.setItem('zfield_log_file_name', this.logFileName);
                 } else if (data.error) {
                     this.showStatus(data.error, 'warning');
                 }
@@ -1063,7 +1063,7 @@ function terminalApp() {
                     // Try to restore order and active port from localStorage
                     let openPorts = [];
                     let savedGroups = [];
-                    const savedState = localStorage.getItem('zdm_session_state');
+                    const savedState = localStorage.getItem('zfield_session_state');
                     if (savedState) {
                         try {
                             const parsed = JSON.parse(savedState);
@@ -1156,7 +1156,7 @@ function terminalApp() {
                     activePort: this.sessions.find(s => s.id === g.activeSessionId)?.port
                 }))
             };
-            localStorage.setItem('zdm_session_state', JSON.stringify(state));
+            localStorage.setItem('zfield_session_state', JSON.stringify(state));
         },
 
         // Toggle connection
@@ -1283,7 +1283,7 @@ function terminalApp() {
             }
 
             // Legacy Support: Load from custom commands key if exists and merge
-            const savedCustom = localStorage.getItem('zdm_custom_commands');
+            const savedCustom = localStorage.getItem('zfield_custom_commands');
             if (savedCustom) {
                 try {
                     const legacyCustom = JSON.parse(savedCustom);
@@ -1295,7 +1295,7 @@ function terminalApp() {
                         }
                     });
                     // Clean up legacy key after migration
-                    // localStorage.removeItem('zdm_custom_commands'); 
+                    // localStorage.removeItem('zfield_custom_commands'); 
                     this.saveCachedCommands(this.commands);
                 } catch (e) {
                     console.error('Error migrating legacy custom commands:', e);
@@ -1438,7 +1438,7 @@ function terminalApp() {
             if (fromIdx !== -1 && toIdx !== -1) {
                 const [movedIcon] = this.sidebarIcons.splice(fromIdx, 1);
                 this.sidebarIcons.splice(toIdx, 0, movedIcon);
-                localStorage.setItem('zdm_icon_order', JSON.stringify(this.sidebarIcons.map(i => i.id)));
+                localStorage.setItem('zfield_icon_order', JSON.stringify(this.sidebarIcons.map(i => i.id)));
             }
 
             this.handleDragEnd();
@@ -1680,8 +1680,8 @@ function terminalApp() {
                             log_tx: !this.omitSent
                         })
                     });
-                    localStorage.setItem('zdm_log_mode', this.logMode);
-                    localStorage.setItem('zdm_omit_sent', this.omitSent);
+                    localStorage.setItem('zfield_log_mode', this.logMode);
+                    localStorage.setItem('zfield_omit_sent', this.omitSent);
                     this.showToast('Logging settings updated', 'success');
                 } catch (e) {
                     console.error('Failed to update logging settings:', e);
@@ -1707,15 +1707,15 @@ function terminalApp() {
             try {
                 // Save manual port to localStorage
                 if (this.manualPort) {
-                    localStorage.setItem('zdm_manual_port', this.manualPort);
+                    localStorage.setItem('zfield_manual_port', this.manualPort);
                 }
 
                 // Save logging settings to localStorage
                 if (this.logFileName) {
-                    localStorage.setItem('zdm_log_file_name', this.logFileName);
+                    localStorage.setItem('zfield_log_file_name', this.logFileName);
                 }
-                localStorage.setItem('zdm_log_mode', this.logMode);
-                localStorage.setItem('zdm_omit_sent', this.omitSent);
+                localStorage.setItem('zfield_log_mode', this.logMode);
+                localStorage.setItem('zfield_omit_sent', this.omitSent);
 
                 const response = await fetch('/api/connect', {
                     method: 'POST',

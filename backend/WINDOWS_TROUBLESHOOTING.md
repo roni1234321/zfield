@@ -59,7 +59,7 @@ If something is using it, either:
 
 Some antivirus software blocks local servers. Try:
 1. Temporarily disable antivirus
-2. Add exception for `zdm.exe`
+2. Add exception for `zfield.exe`
 3. Re-enable antivirus
 
 ##### D. Python/Uvicorn Issue
@@ -102,7 +102,7 @@ def main():
 
 2. **Run and check console:**
    ```cmd
-   dist\zdm\zdm.exe
+   dist\zfield\zfield.exe
    ```
 
 3. **Look for these messages:**
@@ -119,7 +119,7 @@ The console window will now show:
 - Port conflicts
 - PID management messages
 
-**For production builds**, you can hide the console by changing in `zdm_gui.spec`:
+**For production builds**, you can hide the console by changing in `zfield_gui.spec`:
 ```python
 console=False  # Hide console window
 ```
@@ -146,7 +146,7 @@ With this information, we can diagnose the specific issue.
 | ------------------ | ------------------------------------- |
 | Firewall blocking  | Add firewall exception for port 48715 |
 | Port in use        | Kill process or change port number    |
-| Antivirus blocking | Add zdm.exe to exceptions             |
+| Antivirus blocking | Add zfield.exe to exceptions             |
 | No console output  | Already fixed - console=True          |
 | Server won't start | Run as Administrator                  |
 | Random errors      | Check Windows Event Viewer            |
@@ -157,7 +157,7 @@ With this information, we can diagnose the specific issue.
 
 Once everything works:
 
-1. **Hide console** in `zdm_gui.spec`:
+1. **Hide console** in `zfield_gui.spec`:
    ```python
    console=False
    ```

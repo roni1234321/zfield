@@ -1,4 +1,4 @@
-# Packaging Guide for Zephyr Device Manager
+# Packaging Guide for ZField
 
 This directory contains scripts and configuration files to build installable packages for Windows and Linux.
 
@@ -16,11 +16,11 @@ Both packages install the application to standard system locations with proper d
 packaging/
 ├── README.md                    # This file
 ├── windows/
-│   ├── zdm.iss                 # Inno Setup script
+│   ├── zfield.iss                 # Inno Setup script
 │   ├── convert_icon.py         # PNG to ICO converter
 │   └── build_msi.bat           # Windows build script
 └── linux/
-    ├── zdm.desktop             # Desktop entry file
+    ├── zfield.desktop             # Desktop entry file
     ├── build_deb.sh            # Linux build script
     ├── install_fpm.sh          # fpm installation helper
     ├── postinstall.sh          # Post-installation script
@@ -46,17 +46,17 @@ This will:
 1. Build the PyInstaller executable (directory mode)
 2. Convert logo.png to ICO format
 3. Create the MSI installer with Inno Setup
-4. Output to `backend/dist/installers/zdm-setup-0.1.0.exe`
+4. Output to `backend/dist/installers/zfield-setup-0.1.0.exe`
 
 ### Installation Locations
 
-- **Executable**: `C:\Program Files\Zephyr Device Manager\`
-- **Start Menu**: Zephyr Device Manager group
+- **Executable**: `C:\Program Files\ZField\`
+- **Start Menu**: ZField group
 - **Desktop**: Optional shortcut (user choice during install)
 
 ### Customization
 
-Edit `zdm.iss` to customize:
+Edit `zfield.iss` to customize:
 - Application name and version
 - Publisher information
 - Installation directory
@@ -92,26 +92,26 @@ This will:
 2. Create proper Debian package structure
 3. Copy files to appropriate locations
 4. Generate the DEB package with fpm
-5. Output to `backend/dist/installers/zdm_0.1.0_amd64.deb`
+5. Output to `backend/dist/installers/zfield_0.1.0_amd64.deb`
 
 ### Installation Locations
 
-- **Executable**: `/opt/zdm/`
-- **Symlink**: `/usr/bin/zdm`
-- **Desktop file**: `/usr/share/applications/zdm.desktop`
-- **Icon**: `/usr/share/icons/hicolor/256x256/apps/zdm.png`
+- **Executable**: `/opt/zfield/`
+- **Symlink**: `/usr/bin/zfield`
+- **Desktop file**: `/usr/share/applications/zfield.desktop`
+- **Icon**: `/usr/share/icons/hicolor/256x256/apps/zfield.png`
 
 ### Installing the Package
 
 ```bash
-sudo dpkg -i dist/installers/zdm_0.1.0_amd64.deb
+sudo dpkg -i dist/installers/zfield_0.1.0_amd64.deb
 sudo apt-get install -f  # Fix dependencies if needed
 ```
 
 ### Uninstalling
 
 ```bash
-sudo apt remove zdm
+sudo apt remove zfield
 ```
 
 ### Customization
@@ -121,7 +121,7 @@ Edit `build_deb.sh` to customize:
 - Dependencies
 - Installation paths
 
-Edit `zdm.desktop` to customize:
+Edit `zfield.desktop` to customize:
 - Application name and description
 - Categories
 - Keywords
@@ -158,7 +158,7 @@ Update this file to change the version number for all packages.
 2. Install on a clean Linux machine
 3. Check application menu for the icon
 4. Launch from menu
-5. Test `zdm` command in terminal
+5. Test `zfield` command in terminal
 6. Uninstall and verify cleanup
 
 ## Troubleshooting

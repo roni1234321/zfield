@@ -54,24 +54,24 @@ def main():
 1. **Fixed Port**: Same origin (`http://127.0.0.1:48715`) every launch
 2. **Same Origin**: localStorage data is accessible across launches
 3. **Private Mode Off**: Data actually persists to disk
-4. **Storage Path**: Data stored in `~/.zdm/storage/`
+4. **Storage Path**: Data stored in `~/.zfield/storage/`
 
 ## Testing
 
 1. **Clear old storage** (optional, to start fresh):
    ```bash
-   rm -rf ~/.zdm/storage/
+   rm -rf ~/.zfield/storage/
    ```
 
 2. **Run the app:**
    ```bash
-   ./dist/zdm/zdm
+   ./dist/zfield/zfield
    ```
    
    You should see:
    ```
    Starting GUI pointing to http://127.0.0.1:48715
-   Using storage path: /home/yonat/.zdm/storage
+   Using storage path: /home/yonat/.zfield/storage
    ```
 
 3. **Close welcome modal** (first launch only)
@@ -85,7 +85,7 @@ def main():
 
 6. **Run again:**
    ```bash
-   ./dist/zdm/zdm
+   ./dist/zfield/zfield
    ```
 
 7. **Verify:**
@@ -105,40 +105,40 @@ If port `48715` is already in use:
 
 ## Storage Location
 
-- **Linux**: `~/.zdm/storage/`
-- **Windows**: `C:\Users\<username>\.zdm\storage\`
-- **macOS**: `/Users/<username>/.zdm/storage/`
+- **Linux**: `~/.zfield/storage/`
+- **Windows**: `C:\Users\<username>\.zfield\storage\`
+- **macOS**: `/Users/<username>/.zfield/storage/`
 
 ## What Gets Persisted
 
 All localStorage data:
-- ✅ Theme (`zdm_theme`)
+- ✅ Theme (`zfield_theme`)
 - ✅ Commands cache (`zephyr_commands_cache`)
-- ✅ Custom commands (`zdm_custom_commands`)
-- ✅ Repeat commands (`zdm_repeat_commands`)
+- ✅ Custom commands (`zfield_custom_commands`)
+- ✅ Repeat commands (`zfield_repeat_commands`)
 - ✅ Response sequences (`zephyr_sequences`)
-- ✅ Counters (`zdm_counters`)
-- ✅ Sidebar width (`zdm_sidebar_width`)
-- ✅ Active view (`zdm_active_view`)
-- ✅ Icon order (`zdm_icon_order`)
+- ✅ Counters (`zfield_counters`)
+- ✅ Sidebar width (`zfield_sidebar_width`)
+- ✅ Active view (`zfield_active_view`)
+- ✅ Icon order (`zfield_icon_order`)
 - ✅ Log settings
 - ✅ Manual port
 - ✅ Session state
-- ✅ Welcome modal state (`zdm_welcome_shown`)
+- ✅ Welcome modal state (`zfield_welcome_shown`)
 
 ## Verification
 
 Check if data is being stored:
 ```bash
-ls -la ~/.zdm/storage/Local\ Storage/leveldb/
-strings ~/.zdm/storage/Local\ Storage/leveldb/*.log | grep zdm
+ls -la ~/.zfield/storage/Local\ Storage/leveldb/
+strings ~/.zfield/storage/Local\ Storage/leveldb/*.log | grep zfield
 ```
 
 You should see your settings like:
 ```
-zdm_theme
+zfield_theme
 dark
-zdm_welcome_shown
+zfield_welcome_shown
 true
 ```
 

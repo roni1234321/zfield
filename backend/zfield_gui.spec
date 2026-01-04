@@ -82,7 +82,7 @@ exe = EXE(
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
-    icon='../frontend/logo.png',
+    icon='../frontend/logo.ico',
 )
 
 coll = COLLECT(

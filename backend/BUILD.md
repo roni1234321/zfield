@@ -1,6 +1,6 @@
-# Building ZDM Executable
+# Building ZField Executable
 
-This guide explains how to build Zephyr Device Manager into a standalone executable using PyInstaller.
+This guide explains how to build ZField into a standalone executable using PyInstaller.
 
 ## Prerequisites
 
@@ -28,8 +28,8 @@ chmod +x build.sh
 ## Output
 
 The executable will be created in `backend/dist/`:
-- **Windows**: `dist/zdm.exe`
-- **Linux/Mac**: `dist/zdm`
+- **Windows**: `dist/zfield.exe`
+- **Linux/Mac**: `dist/zfield`
 
 ## Running the Executable
 
@@ -37,10 +37,10 @@ Simply run the executable:
 
 ```bash
 # Windows
-dist\zdm.exe
+dist\zfield.exe
 
 # Linux/Mac
-./dist/zdm
+./dist/zfield
 ```
 
 The application will:
@@ -62,7 +62,7 @@ The executable bundles:
 
 ### Build fails with missing modules
 
-Add the missing module to `hiddenimports` in `zdm.spec`:
+Add the missing module to `hiddenimports` in `zfield_gui.spec`:
 
 ```python
 hiddenimports=[
@@ -73,7 +73,7 @@ hiddenimports=[
 
 ### Frontend files not found
 
-Ensure the frontend path in `zdm.spec` is correct relative to the spec file location.
+Ensure the frontend path in `zfield_gui.spec` is correct relative to the spec file location.
 
 ### Serial port access issues
 
@@ -87,7 +87,7 @@ Then log out and back in.
 
 ## Customization
 
-Edit `zdm.spec` to customize:
+Edit `zfield_gui.spec` to customize:
 - Executable name
 - Icon (add `icon='path/to/icon.ico'` in EXE section)
 - Console window (set `console=False` for GUI mode)

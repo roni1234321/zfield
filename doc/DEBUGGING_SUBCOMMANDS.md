@@ -165,7 +165,7 @@ bypass --help
 bypass - Bypass shell
 ```
 
-**Expected result in ZDM:**
+**Expected result in ZField:**
 - Console shows "Simple help format detected"
 - No arrow appears
 - Status: "No subcommands found for bypass"
@@ -186,7 +186,7 @@ Subcommands:
   enable  : Enable logging
 ```
 
-**Expected result in ZDM:**
+**Expected result in ZField:**
 - Console shows "Found subcommand section"
 - Console shows "✓ [backend]", "✓ [disable]", etc.
 - Arrow (►) appears

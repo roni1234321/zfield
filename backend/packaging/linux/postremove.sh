@@ -1,7 +1,7 @@
 #!/bin/bash
-# Post-removal script for ZDM DEB package
+# Post-removal script for ZField DEB package
 
-echo "Cleaning up Zephyr Device Manager..."
+echo "Cleaning up ZField..."
 
 # Update desktop database
 if command -v update-desktop-database &> /dev/null; then
@@ -13,4 +13,4 @@ if command -v gtk-update-icon-cache &> /dev/null; then
     gtk-update-icon-cache -f -t /usr/share/icons/hicolor
 fi
 
-echo "Zephyr Device Manager removed."
+echo "ZField removed."

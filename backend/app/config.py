@@ -1,7 +1,7 @@
-"""Configuration management for Zephyr Device Manager.
+"""Configuration management for ZField.
 
 This module provides centralized configuration using Pydantic Settings.
-All configuration can be overridden via environment variables with ZDM_ prefix.
+All configuration can be overridden via environment variables with ZFIELD_ prefix.
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator, ValidationError
@@ -12,8 +12,8 @@ import logging
 class Settings(BaseSettings):
     """Application settings with environment variable support.
     
-    All settings can be overridden via environment variables with ZDM_ prefix.
-    For example, ZDM_HOST=127.0.0.1 will override the host setting.
+    All settings can be overridden via environment variables with ZFIELD_ prefix.
+    For example, ZFIELD_HOST=127.0.0.1 will override the host setting.
     """
     
     # Server configuration
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # Logging configuration
     log_level: str = "INFO"
     log_format: str = "json"
-    log_file: str = "logs/zdm.log"
+    log_file: str = "logs/zfield.log"
     log_max_bytes: int = 10485760  # 10MB
     log_backup_count: int = 5
     log_serial_data: bool = False
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="ZDM_",
+        env_prefix="ZFIELD_",
         case_sensitive=False,
         extra="ignore"
     )

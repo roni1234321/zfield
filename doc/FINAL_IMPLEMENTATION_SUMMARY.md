@@ -204,7 +204,7 @@ Sends via WebSocket: "command arg1 arg2\n"
 ~/zephyrproject/apps/shell_module/build/zephyr/zephyr.exe
 ```
 
-This creates a pseudo-terminal (e.g., `/dev/pts/6`) that can be connected to via ZDM.
+This creates a pseudo-terminal (e.g., `/dev/pts/6`) that can be connected to via ZField.
 
 ### Test Commands
 
@@ -347,8 +347,8 @@ All specified requirements (9.3, 10.3, 15.3) have been validated and implemented
    ~/zephyrproject/apps/shell_module/build/zephyr/zephyr.exe
    ```
 
-2. **Connect in ZDM:**
-   - Open ZDM
+2. **Connect in ZField:**
+   - Open ZField
    - Connect to the pts shown (e.g., `/dev/pts/6`)
 
 3. **Scan commands:**

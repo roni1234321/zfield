@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start script for ZDM backend
+# Start script for ZField backend
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
@@ -15,6 +15,6 @@ echo "Installing dependencies..."
 pip install -r requirements.txt
 
 # Start the server
-echo "Starting ZDM backend server..."
+echo "Starting ZField backend server..."
 python -m app.startup
 
