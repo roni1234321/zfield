@@ -1,5 +1,7 @@
 @echo off
 REM Build script for Windows
+REM Skip pause in CI environment
+if "%CI%"=="true" set SKIP_PAUSE=1
 
 echo Building ZField executable...
 
@@ -22,4 +24,4 @@ echo.
 echo Build complete! Executable is in dist\zfield\
 echo Run with: dist\zfield\zfield.exe
 echo.
-pause
+if not defined SKIP_PAUSE pause

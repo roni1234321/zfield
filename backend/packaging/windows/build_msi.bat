@@ -2,6 +2,8 @@
 REM Build script for Windows MSI installer
 REM Requires: Inno Setup (https://jrsoftware.org/isinfo.php)
 REM           Python with Pillow (pip install Pillow)
+REM Skip pause in CI environment
+if "%CI%"=="true" set SKIP_PAUSE=1
 
 echo ========================================
 echo Building ZField Installer
@@ -11,15 +13,15 @@ echo.
 REM Change to backend directory
 cd /d "%~dp0..\.."
 
-REM Step 1: Build the PyInstaller executable
-echo [1/4] Building PyInstaller executable...
-call build.bat
-if errorlevel 1 (
-    echo ERROR: PyInstaller build failed!
-    pause
-    exit /b 1
-)
-echo.
+@REM REM Step 1: Build the PyInstaller executable
+@REM echo [1/4] Building PyInstaller executable...
+@REM call build.bat
+@REM if errorlevel 1 (
+@REM     echo ERROR: PyInstaller build failed!
+@REM     pause
+@REM     exit /b 1
+@REM )
+@REM echo.
 
 REM Step 2: Convert logo to ICO format
 echo [2/4] Converting logo to ICO format...
@@ -27,7 +29,7 @@ python packaging\windows\convert_icon.py
 if errorlevel 1 (
     echo ERROR: Icon conversion failed!
     echo Make sure Pillow is installed: pip install Pillow
-    pause
+    if not defined SKIP_PAUSE pause
     exit /b 1
 )
 echo.
@@ -48,14 +50,14 @@ if %ISCC%=="" (
     echo ERROR: Inno Setup not found!
     echo Please install Inno Setup from: https://jrsoftware.org/isinfo.php
     echo Or update the ISCC path in this script.
-    pause
+    if not defined SKIP_PAUSE pause
     exit /b 1
 )
 
 %ISCC% packaging\windows\zfield.iss
 if errorlevel 1 (
     echo ERROR: Inno Setup compilation failed!
-    pause
+    if not defined SKIP_PAUSE pause
     exit /b 1
 )
 echo.
@@ -65,4 +67,4 @@ echo Build Complete!
 echo ========================================
 echo Installer location: dist\installers\zfield-setup-0.1.0.exe
 echo.
-pause
+if not defined SKIP_PAUSE pause
