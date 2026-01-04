@@ -4,8 +4,16 @@ Convert PNG logo to ICO format for Windows installer.
 Requires Pillow: pip install Pillow
 """
 import sys
+import os
 from pathlib import Path
 from PIL import Image
+
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
 
 def convert_png_to_ico(png_path, ico_path, sizes=None):
     """
@@ -40,7 +48,7 @@ def convert_png_to_ico(png_path, ico_path, sizes=None):
         append_images=icon_sizes[1:]
     )
     
-    print(f"✓ Created {ico_path} with sizes: {sizes}")
+    print(f"[OK] Created {ico_path} with sizes: {sizes}")
 
 if __name__ == '__main__':
     # Get paths relative to this script
