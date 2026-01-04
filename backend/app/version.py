@@ -2,7 +2,7 @@
 import subprocess
 import os
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 
 def get_git_hash():
     """Get the current git hash if available."""
