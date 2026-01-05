@@ -1,9 +1,0 @@
-pywebview[qt]
-fastapi
-uvicorn[standard]
-pyserial
-pydantic
-pydantic-settings
-pyinstaller
-psutil
-

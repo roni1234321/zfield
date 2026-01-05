@@ -1,0 +1,35 @@
+[project]
+name = "zfield"
+version = "0.1.6"
+description = "Serial terminal and device manager for Zephyr RTOS development"
+requires-python = ">=3.10"
+dependencies = [
+    "pywebview",
+    "fastapi",
+    "uvicorn[standard]",
+    "pyserial",
+    "pydantic",
+    "pydantic-settings",
+    "pyinstaller",
+    "psutil",
+]
+
+[project.optional-dependencies]
+windows = []  # Windows uses native Edge WebView2, no additional dependencies needed
+linux = [
+    "pywebview[qt]",
+    "PyQt6",
+    "PyQt6-WebEngine",
+]
+dev = [
+    "pytest",
+    "black",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["backend.app"]

@@ -1,6 +1,9 @@
 #!/bin/bash
 # Start script for ZField backend
 
+# Change to root directory (where pyproject.toml is)
+cd "$(dirname "$0")/.."
+
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo "Creating virtual environment..."
@@ -10,9 +13,12 @@ fi
 # Activate virtual environment
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies (from root where pyproject.toml is)
 echo "Installing dependencies..."
-pip install -r requirements.txt
+pip install -e .[linux]
+
+# Change to backend directory to run the server
+cd backend
 
 # Start the server
 echo "Starting ZField backend server..."

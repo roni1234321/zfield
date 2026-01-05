@@ -19,7 +19,7 @@ echo
 
 # Step 1: Build the PyInstaller executable
 echo "[1/5] Building PyInstaller executable..."
-bash build.sh
+pyinstaller zfield_gui_linux.spec
 echo
 
 # Step 2: Create temporary package structure

@@ -15,7 +15,7 @@ cd /d "%~dp0..\.."
 
 REM Step 1: Build the PyInstaller executable
 echo [1/4] Building PyInstaller executable...
-call build.bat
+pyinstaller zfield_gui_windows.spec
 if errorlevel 1 (
     echo ERROR: PyInstaller build failed!
     if not defined SKIP_PAUSE pause
