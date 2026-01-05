@@ -65,6 +65,6 @@ echo.
 echo ========================================
 echo Build Complete!
 echo ========================================
-echo Installer location: dist\installers\zfield-setup-0.1.0.exe
+echo Installer location: dist\installers\
 echo.
 if not defined SKIP_PAUSE pause
