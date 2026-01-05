@@ -13,6 +13,24 @@ from app.main import app
 # Suppress pywebview recursion warnings on Windows
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
+# Windows API constants for rounded corners
+if sys.platform == 'win32':
+    import ctypes
+    from ctypes import wintypes
+    
+    DWMWA_WINDOW_CORNER_PREFERENCE = 33
+    DWMWCP_DEFAULT = 0
+    DWMWCP_DONOTROUND = 1
+    DWMWCP_ROUND = 2
+    DWMWCP_ROUNDSMALL = 3
+    
+    try:
+        dwmapi = ctypes.windll.dwmapi
+    except:
+        dwmapi = None
+else:
+    dwmapi = None
+
 FIXED_PORT = 48715
 
 def get_pid_file():
@@ -230,6 +248,17 @@ class WindowAPI:
                             self.window.y = y
                         except:
                             pass
+                
+                # Reapply glass effect and rounded corners after resize/snap (Windows may lose it)
+                if sys.platform == 'win32' and hasattr(self, 'apply_rounded_corners'):
+                    def reapply_effects():
+                        time.sleep(0.1)
+                        if self.window and hasattr(self.window, 'native') and self.window.native:
+                            try:
+                                self.apply_rounded_corners(self.window.native)
+                            except:
+                                pass
+                    threading.Timer(0.1, reapply_effects).start()
             except Exception as e:
                 # Don't print errors for resize operations during drag
                 pass
@@ -283,32 +312,182 @@ def main():
     # Store window in app state for API access (for HTTP endpoints if needed)
     app.state.window = window
     
-    # Apply native Windows Mica/Acrylic effect after window is shown
+    # Apply native Windows Mica/Acrylic effect and rounded corners
     def apply_glass_effect():
         if sys.platform == 'win32':
             try:
                 import pywinstyles
                 # Wait a bit for window to be fully initialized
-                time.sleep(0.1)
-                # Get the native window handle
-                if hasattr(window, 'native') and window.native:
+                time.sleep(0.3)
+                # Get the native window handle - try multiple times if needed
+                max_retries = 5
+                for attempt in range(max_retries):
                     try:
-                        # Try Mica first (Windows 11), fallback to Acrylic (Windows 10)
-                        try:
-                            pywinstyles.apply_style(window.native, 'mica')
-                            print("Applied Windows 11 Mica effect")
-                        except:
-                            # Fallback to Acrylic for Windows 10
-                            pywinstyles.apply_style(window.native, 'acrylic')
-                            print("Applied Windows 10 Acrylic effect")
+                        if hasattr(window, 'native') and window.native:
+                            native_win = window.native
+                            print(f"Window native type: {type(native_win)}")
+                            
+                            # Try to apply rounded corners using pywinstyles if it supports it
+                            try:
+                                # Some versions of pywinstyles might support rounded corners
+                                if hasattr(pywinstyles, 'apply_rounded_corners'):
+                                    pywinstyles.apply_rounded_corners(native_win)
+                                    print("Applied rounded corners via pywinstyles")
+                                else:
+                                    # Use our custom function
+                                    result = apply_rounded_corners(native_win)
+                                    if not result:
+                                        print("Warning: Rounded corners application returned False")
+                            except Exception as e:
+                                print(f"Exception applying rounded corners: {e}")
+                                import traceback
+                                traceback.print_exc()
+                            
+                            # Try Mica first (Windows 11), fallback to Acrylic (Windows 10)
+                            try:
+                                pywinstyles.apply_style(native_win, 'mica')
+                                print("Applied Windows 11 Mica effect")
+                                return True
+                            except:
+                                # Fallback to Acrylic for Windows 10
+                                pywinstyles.apply_style(native_win, 'acrylic')
+                                print("Applied Windows 10 Acrylic effect")
+                                return True
+                        else:
+                            # Wait a bit more for native handle to be available
+                            time.sleep(0.2)
                     except Exception as e:
+                        if attempt < max_retries - 1:
+                            time.sleep(0.2)
+                            continue
                         print(f"Could not apply Windows glass effect: {e}")
                         print("Note: Install pywinstyles with: pip install pywinstyles")
+                        return False
+                return False
             except ImportError:
                 print("pywinstyles not installed. Install with: pip install pywinstyles")
                 print("Skipping native Windows glass effect.")
+                # Still try to apply rounded corners even without pywinstyles
+                try:
+                    if hasattr(window, 'native') and window.native:
+                        apply_rounded_corners(window.native)
+                except:
+                    pass
+                return False
             except Exception as e:
                 print(f"Error applying Windows glass effect: {e}")
+                return False
+        return False
+    
+    def apply_rounded_corners(native_window):
+        """Apply rounded corners to the window using Windows DWM API."""
+        if sys.platform == 'win32' and dwmapi:
+            try:
+                # Get window handle - pywebview on Windows uses Windows Forms
+                # The native window is a System.Windows.Forms.Form
+                hwnd = None
+                
+                # Try multiple methods to get the HWND
+                try:
+                    if hasattr(native_window, 'Handle'):
+                        hwnd = native_window.Handle
+                    elif hasattr(native_window, 'handle'):
+                        hwnd = native_window.handle
+                    elif hasattr(native_window, 'hwnd'):
+                        hwnd = native_window.hwnd
+                except:
+                    pass
+                
+                # If still no handle, try converting .NET IntPtr
+                if not hwnd:
+                    try:
+                        # Try as integer property with .NET IntPtr methods
+                        hwnd_val = getattr(native_window, 'Handle', None)
+                        if hwnd_val:
+                            if hasattr(hwnd_val, 'ToInt32'):
+                                hwnd = hwnd_val.ToInt32()
+                            elif hasattr(hwnd_val, 'ToInt64'):
+                                hwnd = int(hwnd_val.ToInt64())
+                            elif hasattr(hwnd_val, '__int__'):
+                                hwnd = int(hwnd_val)
+                            else:
+                                try:
+                                    hwnd = int(hwnd_val)
+                                except:
+                                    pass
+                    except:
+                        pass
+                
+                if hwnd:
+                    # Convert to int if it's not already
+                    if not isinstance(hwnd, int):
+                        try:
+                            hwnd = int(hwnd)
+                        except:
+                            try:
+                                hwnd = int(str(hwnd))
+                            except:
+                                hwnd = None
+                    
+                    if hwnd and hwnd != 0:
+                        # Use DWORD (unsigned 32-bit integer) for the preference
+                        preference = wintypes.DWORD(DWMWCP_ROUND)
+                        hwnd_ptr = wintypes.HWND(hwnd)
+                        
+                        result = dwmapi.DwmSetWindowAttribute(
+                            hwnd_ptr,
+                            DWMWA_WINDOW_CORNER_PREFERENCE,
+                            ctypes.byref(preference),
+                            ctypes.sizeof(preference)
+                        )
+                        
+                        if result == 0:  # S_OK
+                            print(f"Successfully applied rounded corners (HWND: {hwnd})")
+                            return True
+                        else:
+                            # Get error message
+                            error_msg = f"DWM error code: 0x{result:08X}"
+                            if result == 0x80070057:  # E_INVALIDARG
+                                error_msg += " (Invalid argument)"
+                            elif result == 0x80004005:  # E_FAIL
+                                error_msg += " (Operation failed)"
+                            print(f"Failed to apply rounded corners, {error_msg}")
+                    else:
+                        print(f"Could not get valid window handle. HWND: {hwnd}")
+                        # Try alternative: use FindWindow to get HWND by title
+                        try:
+                            user32 = ctypes.windll.user32
+                            hwnd = user32.FindWindowW(None, "ZField")
+                            if hwnd and hwnd != 0:
+                                print(f"Found window by title, HWND: {hwnd}")
+                                preference = wintypes.DWORD(DWMWCP_ROUND)
+                                hwnd_ptr = wintypes.HWND(hwnd)
+                                result = dwmapi.DwmSetWindowAttribute(
+                                    hwnd_ptr,
+                                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                                    ctypes.byref(preference),
+                                    ctypes.sizeof(preference)
+                                )
+                                if result == 0:
+                                    print(f"Successfully applied rounded corners via FindWindow (HWND: {hwnd})")
+                                    return True
+                        except Exception as e2:
+                            print(f"FindWindow fallback also failed: {e2}")
+            except Exception as e:
+                print(f"Error applying rounded corners: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            if sys.platform != 'win32':
+                print("Rounded corners only supported on Windows")
+            elif not dwmapi:
+                print("DWM API not available")
+        return False
+    
+    # Store the apply function for reuse (make it accessible)
+    window_api.apply_glass_effect = apply_glass_effect
+    # Also store apply_rounded_corners for reuse
+    window_api.apply_rounded_corners = apply_rounded_corners
     
     # Schedule glass effect to be applied after window starts
     threading.Timer(0.5, apply_glass_effect).start()
