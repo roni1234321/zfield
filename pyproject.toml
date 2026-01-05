@@ -15,7 +15,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-windows = []  # Windows uses native Edge WebView2, no additional dependencies needed
+windows = [
+    "pywinstyles",  # For native Windows Mica/Acrylic glass effect
+]
 linux = [
     "pywebview[qt]",
     "PyQt6",
