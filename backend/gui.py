@@ -532,11 +532,11 @@ def main():
             
             sys.stderr = FilteredStderr(original_stderr)
             try:
-                webview.start(storage_path=storage_path, private_mode=False, debug=True)
+                webview.start(storage_path=storage_path, private_mode=False)
             finally:
                 sys.stderr = original_stderr
         else:
-            webview.start(storage_path=storage_path, private_mode=False, debug=True)
+            webview.start(storage_path=storage_path, private_mode=False)
     finally:
         # Cleanup on exit
         cleanup_pid_file()
