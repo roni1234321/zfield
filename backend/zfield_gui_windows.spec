@@ -74,7 +74,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,  # Disabled to reduce antivirus false positives
     console=False,  # Hide console for production
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -89,7 +89,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,  # Disabled to reduce antivirus false positives
     upx_exclude=[],
     name='zfield',
 )
