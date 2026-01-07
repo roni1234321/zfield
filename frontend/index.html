@@ -8,9 +8,10 @@
     <link rel="icon" href="/logo.png?v=2" type="image/png">
     <link rel="apple-touch-icon" href="/logo.png?v=2">
     <link rel="stylesheet" href="css/xterm.css" />
+    <link rel="stylesheet" href="css/vscode-codicons-0.0.40.css" />
     <script src="js/lib/xterm.js"></script>
     <script src="js/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.16.0/lib/addon-webgl.js"></script>
+    <script src="js/lib/addon-webgl.js"></script>
 
     <script src="js/app.js"></script>
 
@@ -220,7 +221,9 @@
         .window-controls button {
             width: 46px;
             height: 30px;
-            display: flex;
+            min-width: 46px;
+            min-height: 30px;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             border: none;
@@ -230,6 +233,8 @@
             transition: background-color 0.15s ease, color 0.15s ease;
             padding: 0;
             margin: 0;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .dark .window-controls button {
@@ -254,6 +259,15 @@
             height: 12px;
             stroke-width: 1.5;
             pointer-events: none;
+        }
+
+        .window-controls button .codicon {
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+            pointer-events: none;
+            line-height: 1;
         }
     </style>
 </head>
@@ -424,31 +438,14 @@
             <!-- Window Controls (VSCode Style) -->
             <div class="window-controls ml-2" style="flex-shrink: 0;">
                 <button @click="windowMinimize()" title="Minimize">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"></path>
-                    </svg>
+                    <span class="codicon codicon-chrome-minimize"></span>
                 </button>
                 <button @click="windowMaximize()" title="Maximize">
-                    <!-- Two overlapping squares (restore style) when windowed -->
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="!isMaximized">
-                        <!-- Back square (bottom-left) -->
-                        <rect x="4" y="6" width="12" height="12" rx="1.5" stroke-linecap="round" stroke-linejoin="round"
-                            stroke-width="1.5" />
-                        <!-- Front square (top-right) -->
-                        <rect x="8" y="4" width="12" height="12" rx="1.5" stroke-linecap="round" stroke-linejoin="round"
-                            stroke-width="1.5" />
-                    </svg>
-                    <!-- Single square when maximized (can restore) -->
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="isMaximized"
-                        style="display: none;">
-                        <rect x="4" y="6" width="16" height="12" rx="1.5" stroke-linecap="round" stroke-linejoin="round"
-                            stroke-width="1.5" />
-                    </svg>
+                    <span class="codicon"
+                        :class="isMaximized ? 'codicon-chrome-restore' : 'codicon-chrome-maximize'"></span>
                 </button>
                 <button @click="windowClose()" class="close" title="Close">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
+                    <span class="codicon codicon-chrome-close"></span>
                 </button>
             </div>
         </header>

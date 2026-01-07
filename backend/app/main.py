@@ -44,7 +44,11 @@ if frontend_path.exists():
         """Serve frontend index page."""
         index_path = frontend_path / "index.html"
         if index_path.exists():
-            return FileResponse(index_path)
+            response = FileResponse(index_path)
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            return response
         return {"message": "Frontend not found"}
 
     # Serve the entire frontend directory (js, css, logo.png, etc.)
