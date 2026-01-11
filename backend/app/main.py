@@ -27,9 +27,17 @@ if getattr(sys, 'frozen', False):
     # Running as compiled executable
     base_path = Path(sys._MEIPASS)
     frontend_path = base_path / "frontend"
+    print(f"[DEBUG] Running as frozen executable, base_path: {base_path}")
+    print(f"[DEBUG] Frontend path: {frontend_path}")
+    print(f"[DEBUG] Frontend exists: {frontend_path.exists()}")
+    if frontend_path.exists():
+        print(f"[DEBUG] Frontend contents: {list(frontend_path.iterdir())}")
 else:
     # Running as script
     frontend_path = Path(__file__).parent.parent.parent / "frontend"
+    print(f"[DEBUG] Running as script, frontend_path: {frontend_path}")
+    print(f"[DEBUG] Frontend exists: {frontend_path.exists()}")
+
 if frontend_path.exists():
     @app.get("/favicon.ico")
     async def favicon():
@@ -43,17 +51,29 @@ if frontend_path.exists():
     async def read_root():
         """Serve frontend index page."""
         index_path = frontend_path / "index.html"
+        print(f"[DEBUG] Serving index.html from: {index_path}")
+        print(f"[DEBUG] Index exists: {index_path.exists()}")
         if index_path.exists():
             response = FileResponse(index_path)
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
             return response
-        return {"message": "Frontend not found"}
+        error_msg = f"Frontend not found at {index_path}"
+        print(f"[ERROR] {error_msg}")
+        return {"error": error_msg, "frontend_path": str(frontend_path), "exists": frontend_path.exists()}
 
     # Serve the entire frontend directory (js, css, logo.png, etc.)
     # Mount this last so it doesn't shadow the API or explicit routes
-    app.mount("/", StaticFiles(directory=frontend_path), name="frontend")
+    try:
+        app.mount("/", StaticFiles(directory=str(frontend_path)), name="frontend")
+        print(f"[DEBUG] Mounted static files from: {frontend_path}")
+    except Exception as e:
+        print(f"[ERROR] Failed to mount static files: {e}")
+        import traceback
+        traceback.print_exc()
+else:
+    print(f"[ERROR] Frontend directory does not exist: {frontend_path}")
 
 @app.get("/health")
 async def health():

@@ -90,9 +90,19 @@ def start_server(port):
     """Start the FastAPI server in a background thread."""
     try:
         print(f"Starting server on port {port}...")
-        uvicorn.run(app, host="127.0.0.1", port=port, log_level="error")
+        print(f"Backend logs will be visible in the console")
+        # Use info log level to see all requests and errors
+        # uvicorn logs go to stdout, so they won't be filtered by FilteredStderr
+        uvicorn.run(
+            app, 
+            host="127.0.0.1", 
+            port=port, 
+            log_level="info", 
+            access_log=True,
+            use_colors=True  # Enable colored output for better visibility
+        )
     except Exception as e:
-        print(f"Server error: {e}")
+        print(f"ERROR: Server failed to start: {e}")
         import traceback
         traceback.print_exc()
 
@@ -285,6 +295,7 @@ def main():
     # Create a pywebview window with persistent storage
     url = f'http://127.0.0.1:{port}'
     print(f"Starting GUI pointing to {url}")
+    print(f"Server should be running on {url}")
     
     # Get persistent storage path
     storage_path = get_storage_path()
@@ -294,6 +305,7 @@ def main():
     window_api = WindowAPI()
     
     # Create window with minimal delay - don't wait for full initialization
+    # Enable debug mode to allow DevTools access even if page doesn't load
     window = webview.create_window(
         'ZField',
         url,
@@ -499,6 +511,18 @@ def main():
         # private_mode=False is REQUIRED for localStorage to persist
         # Suppress recursion errors and thread access errors from Windows WebView2
         if sys.platform == 'win32':
+            # Check WebView2 runtime before starting
+            print("Checking WebView2 runtime...")
+            try:
+                # Try to import webview to check if it can initialize
+                import webview.platforms.edgechromium
+                print("WebView2 platform available")
+            except Exception as e:
+                print(f"WARNING: WebView2 platform check failed: {e}")
+                print("This may cause initialization issues.")
+                print("Please ensure Microsoft Edge WebView2 Runtime is installed:")
+                print("https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
+            
             # Redirect stderr temporarily to suppress pywebview warnings
             # Use a more efficient filtering approach
             original_stderr = sys.stderr
@@ -507,24 +531,30 @@ def main():
                     self.original = original
                 
                 def write(self, text):
+                    # Only filter pywebview-specific errors, not backend logs
+                    # Backend logs (uvicorn/FastAPI) should always pass through
+                    
                     # Fast filtering: check for pywebview error prefix first
                     if '[pywebview]' in text:
-                        # This is a pywebview error, filter it out
-                        return
+                        # Check if it's a harmless recursion/accessibility error
+                        if 'recursion depth' in text.lower():
+                            return
+                        # Filter COM interface casting errors that are harmless
+                        if 'unable to cast' in text.lower() and 'com object' in text.lower():
+                            # Only filter if it's the common accessibility/COM errors
+                            if 'accessibilityobject' in text.lower() or 'corewebview2' in text.lower():
+                                return
+                        if 'accessibilityobject' in text.lower() and 'bounds' in text.lower():
+                            return
+                        if 'corewebview2' in text.lower() and ('invalidcast' in text.lower() or 'no such interface' in text.lower()):
+                            return
+                        if '__abstractmethods__' in text:
+                            return
+                        # Let other pywebview errors through (they might be important)
+                        # Especially initialization failures
                     
-                    # Check for recursion errors (common pattern)
-                    if 'recursion depth' in text.lower():
-                        return
-                    
-                    # Check for accessibility/COM errors
-                    if 'accessibilityobject' in text.lower() or 'corewebview2' in text.lower():
-                        return
-                    
-                    # Check for abstract methods errors
-                    if '__abstractmethods__' in text:
-                        return
-                    
-                    # Not a filtered error, pass through immediately
+                    # Always pass through backend logs (uvicorn, FastAPI, etc.)
+                    # These typically don't have [pywebview] prefix
                     self.original.write(text)
                 
                 def flush(self):
@@ -532,11 +562,36 @@ def main():
             
             sys.stderr = FilteredStderr(original_stderr)
             try:
-                webview.start(storage_path=storage_path, private_mode=False)
+                print("Starting WebView2...")
+                print("If you see 'WebView2 initialization failed', try:")
+                print("  1. Install/update Microsoft Edge WebView2 Runtime")
+                print("  2. Run Windows Update")
+                print("  3. Repair WebView2 Runtime from Add/Remove Programs")
+                webview.start(storage_path=storage_path, private_mode=False, debug=True)
+            except Exception as e:
+                # Restore stderr before showing error
+                sys.stderr = original_stderr
+                error_msg = str(e)
+                print(f"\n{'='*60}")
+                print("ERROR: WebView2 initialization failed!")
+                print(f"{'='*60}")
+                print(f"Error: {error_msg}")
+                print("\nTroubleshooting steps:")
+                print("1. Install/Update Microsoft Edge WebView2 Runtime:")
+                print("   https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
+                print("2. Run Windows Update to get latest patches")
+                print("3. Repair WebView2 Runtime:")
+                print("   - Open Settings > Apps > Installed apps")
+                print("   - Find 'Microsoft Edge WebView2 Runtime'")
+                print("   - Click three dots > Modify > Repair")
+                print("4. Run System File Checker (as Administrator):")
+                print("   sfc /scannow")
+                print(f"{'='*60}\n")
+                raise
             finally:
                 sys.stderr = original_stderr
         else:
-            webview.start(storage_path=storage_path, private_mode=False)
+            webview.start(storage_path=storage_path, private_mode=False, debug=True)
     finally:
         # Cleanup on exit
         cleanup_pid_file()
