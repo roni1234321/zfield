@@ -131,168 +131,16 @@
         [x-cloak] {
             display: none !important;
         }
-
-        /* Window resize handles for frameless windows */
-        .window-resize-handle {
-            position: fixed;
-            background: transparent;
-            z-index: 999999;
-            -webkit-app-region: no-drag;
-            pointer-events: auto;
-            user-select: none;
-        }
-
-        .window-resize-handle:hover {
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        .window-resize-handle.top {
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            cursor: ns-resize;
-        }
-
-        .window-resize-handle.bottom {
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            cursor: ns-resize;
-        }
-
-        .window-resize-handle.left {
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 8px;
-            cursor: ew-resize;
-        }
-
-        .window-resize-handle.right {
-            top: 0;
-            bottom: 0;
-            right: 0;
-            width: 8px;
-            cursor: ew-resize;
-        }
-
-        .window-resize-handle.top-left {
-            top: 0;
-            left: 0;
-            width: 8px;
-            height: 8px;
-            cursor: nwse-resize;
-        }
-
-        .window-resize-handle.top-right {
-            top: 0;
-            right: 0;
-            width: 8px;
-            height: 8px;
-            cursor: nesw-resize;
-        }
-
-        .window-resize-handle.bottom-left {
-            bottom: 0;
-            left: 0;
-            width: 8px;
-            height: 8px;
-            cursor: nesw-resize;
-        }
-
-        .window-resize-handle.bottom-right {
-            bottom: 0;
-            right: 0;
-            width: 8px;
-            height: 8px;
-            cursor: nwse-resize;
-        }
-
-        /* VSCode-style window controls */
-        .window-controls {
-            display: flex;
-            align-items: center;
-            height: 30px;
-            -webkit-app-region: no-drag;
-        }
-
-        .window-controls button {
-            width: 46px;
-            height: 30px;
-            min-width: 46px;
-            min-height: 30px;
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            background: transparent;
-            color: #616161;
-            cursor: pointer;
-            transition: background-color 0.15s ease, color 0.15s ease;
-            padding: 0;
-            margin: 0;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-
-        .dark .window-controls button {
-            color: #cccccc;
-        }
-
-        .window-controls button:hover {
-            background-color: rgba(128, 128, 128, 0.1);
-        }
-
-        .dark .window-controls button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .window-controls button.close:hover {
-            background-color: #e81123;
-            color: white;
-        }
-
-        .window-controls button svg {
-            width: 12px;
-            height: 12px;
-            stroke-width: 1.5;
-            pointer-events: none;
-        }
-
-        .window-controls button .codicon {
-            font-size: 12px;
-            width: 12px;
-            height: 12px;
-            display: inline-block;
-            pointer-events: none;
-            line-height: 1;
-        }
     </style>
 </head>
 
 <body class="bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
-    <div x-data="terminalApp()" @mousemove.window="doResize(); doWindowResize($event); handleWindowDrag($event)"
-        @mouseup.window="stopResizing(); stopWindowResizing(); stopWindowDrag()"
+    <div x-data="terminalApp()" @mousemove.window="doResize()" @mouseup.window="stopResizing()"
         class="h-screen flex flex-col relative">
-        <!-- Window Resize Handles -->
-        <div class="window-resize-handle top" @mousedown.prevent.stop="startWindowResize('top', $event)"></div>
-        <div class="window-resize-handle bottom" @mousedown.prevent.stop="startWindowResize('bottom', $event)"></div>
-        <div class="window-resize-handle left" @mousedown.prevent.stop="startWindowResize('left', $event)"></div>
-        <div class="window-resize-handle right" @mousedown.prevent.stop="startWindowResize('right', $event)"></div>
-        <div class="window-resize-handle top-left" @mousedown.prevent.stop="startWindowResize('top-left', $event)">
-        </div>
-        <div class="window-resize-handle top-right" @mousedown.prevent.stop="startWindowResize('top-right', $event)">
-        </div>
-        <div class="window-resize-handle bottom-left"
-            @mousedown.prevent.stop="startWindowResize('bottom-left', $event)"></div>
-        <div class="window-resize-handle bottom-right"
-            @mousedown.prevent.stop="startWindowResize('bottom-right', $event)"></div>
         <header
             class="bg-gray-100 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200 flex items-center px-3 py-1.5 select-none text-xs h-10 shrink-0"
-            style="-webkit-app-region: drag; overflow: visible; position: relative; z-index: 1000;"
-            @mousedown="startWindowDrag($event)" @mousemove="handleWindowDrag($event)" @mouseup="stopWindowDrag()">
+            style="overflow: visible; position: relative; z-index: 1000;" @mousedown="startWindowDrag($event)"
+            @mousemove="handleWindowDrag($event)" @mouseup="stopWindowDrag()">
 
             <!-- App Icon -->
             <div class="mr-4 flex items-center justify-center" style="-webkit-app-region: no-drag;">
@@ -435,19 +283,6 @@
                 </div>
             </div>
 
-            <!-- Window Controls (VSCode Style) -->
-            <div class="window-controls ml-2" style="flex-shrink: 0;">
-                <button @click="windowMinimize()" title="Minimize">
-                    <span class="codicon codicon-chrome-minimize"></span>
-                </button>
-                <button @click="windowMaximize()" title="Maximize">
-                    <span class="codicon"
-                        :class="isMaximized ? 'codicon-chrome-restore' : 'codicon-chrome-maximize'"></span>
-                </button>
-                <button @click="windowClose()" class="close" title="Close">
-                    <span class="codicon codicon-chrome-close"></span>
-                </button>
-            </div>
         </header>
 
         <!-- Main Content Area with VSCode-style Layout -->
