@@ -304,9 +304,15 @@ def main():
     # Create window API that will be exposed to JavaScript
     window_api = WindowAPI()
     
+    # Ensure webview module is accessible in this scope (fix for PyInstaller)
+    # Re-import to ensure it's available even if there are import issues
+    import webview as _webview_module
+    # Use the imported module explicitly to avoid scoping issues
+    webview_module = _webview_module
+    
     # Create window with minimal delay - don't wait for full initialization
     # Enable debug mode to allow DevTools access even if page doesn't load
-    window = webview.create_window(
+    window = webview_module.create_window(
         'ZField',
         url,
         width=1200,
@@ -514,8 +520,9 @@ def main():
             # Check WebView2 runtime before starting
             print("Checking WebView2 runtime...")
             try:
-                # Try to import webview to check if it can initialize
-                import webview.platforms.edgechromium
+                # Try to import webview.platforms.edgechromium to check if it can initialize
+                # Use a different variable name to avoid shadowing the global webview module
+                import webview.platforms.edgechromium as _edgechromium
                 print("WebView2 platform available")
             except Exception as e:
                 print(f"WARNING: WebView2 platform check failed: {e}")
@@ -567,7 +574,7 @@ def main():
                 print("  1. Install/update Microsoft Edge WebView2 Runtime")
                 print("  2. Run Windows Update")
                 print("  3. Repair WebView2 Runtime from Add/Remove Programs")
-                webview.start(storage_path=storage_path, private_mode=False, debug=True)
+                webview_module.start(storage_path=storage_path, private_mode=False, debug=True)
             except Exception as e:
                 # Restore stderr before showing error
                 sys.stderr = original_stderr
@@ -591,7 +598,7 @@ def main():
             finally:
                 sys.stderr = original_stderr
         else:
-            webview.start(storage_path=storage_path, private_mode=False, debug=True)
+            webview_module.start(storage_path=storage_path, private_mode=False, debug=True)
     finally:
         # Cleanup on exit
         cleanup_pid_file()
