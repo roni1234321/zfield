@@ -318,7 +318,7 @@ def main():
         width=1200,
         height=800,
         min_size=(800, 600),
-        frameless=True,  # Hide native title bar for custom title bar
+        # frameless=True,  # Hide native title bar for custom title bar
         easy_drag=True,  # Enable dragging
         js_api=window_api,  # Expose Python functions directly to JavaScript
         shadow=False  # Disable shadow for faster rendering on Windows
@@ -509,7 +509,7 @@ def main():
     
     # Schedule glass effect to be applied after window starts
     threading.Timer(0.5, apply_glass_effect).start()
-    
+    webview_module.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
     print("Window created, starting webview...")
 
     try:
