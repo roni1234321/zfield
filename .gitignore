@@ -48,3 +48,6 @@ ENV/
 # OS
 Thumbs.db
 
+# WebView2 Runtime Installer (large binary, should not be in repo)
+**/MicrosoftEdgeWebView2RuntimeInstaller*.exe
+
