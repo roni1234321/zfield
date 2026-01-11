@@ -13,6 +13,12 @@ from app.main import app
 # Suppress pywebview recursion warnings on Windows
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
+# Set recursion limit to prevent infinite recursion from pywebview introspection
+# This prevents the app from freezing when pywebview tries to introspect window properties
+# Lower limit causes recursion to fail faster instead of blocking the thread
+original_recursion_limit = sys.getrecursionlimit()
+sys.setrecursionlimit(500)  # Lower limit to fail faster and prevent freezes
+
 FIXED_PORT = 48715
 
 def get_pid_file():
@@ -181,6 +187,10 @@ def main():
     # Store window in app state for API access (for HTTP endpoints if needed)
     app.state.window = window
     
+    # Restore recursion limit after window creation (introspection happens during creation)
+    # This prevents legitimate code from hitting the lower limit
+    sys.setrecursionlimit(original_recursion_limit)
+    
     webview_module.settings['OPEN_DEVTOOLS_IN_DEBUG'] = False
     print("Window created, starting webview...")
 
@@ -208,27 +218,69 @@ def main():
             class FilteredStderr:
                 def __init__(self, original):
                     self.original = original
+                    self.error_count = 0
+                    self.last_error_time = 0
                 
                 def write(self, text):
                     # Only filter pywebview-specific errors, not backend logs
                     # Backend logs (uvicorn/FastAPI) should always pass through
                     
+                    # Filter recursion errors even without [pywebview] prefix
+                    # These can appear as raw Python exceptions
+                    text_lower = text.lower()
+                    if '.empty.' in text_lower or 'empty.empty' in text_lower:
+                        if 'recursion' in text_lower or 'maximum recursion' in text_lower:
+                            return
+                    
                     # Fast filtering: check for pywebview error prefix first
                     if '[pywebview]' in text:
-                        # Check if it's a harmless recursion/accessibility error
-                        if 'recursion depth' in text.lower():
+                        text_lower = text.lower()
+                        
+                        # Filter ALL Empty.Empty.Empty... recursion errors (most common cause of freezes)
+                        # Check for the pattern more aggressively - any occurrence of .Empty. is suspicious
+                        if '.empty.' in text_lower or 'empty.empty' in text_lower:
                             return
-                        # Filter COM interface casting errors that are harmless
-                        if 'unable to cast' in text.lower() and 'com object' in text.lower():
-                            # Only filter if it's the common accessibility/COM errors
-                            if 'accessibilityobject' in text.lower() or 'corewebview2' in text.lower():
+                        
+                        # Filter recursion depth errors
+                        if 'recursion depth' in text_lower or 'maximum recursion' in text_lower:
+                            return
+                        
+                        # Filter ALL "Error while processing" messages (these are ALL introspection errors)
+                        # These happen when pywebview tries to introspect window.native properties
+                        # They're harmless but can cause freezes if too many occur
+                        if 'error while processing' in text_lower:
+                            return
+                        
+                        # Filter ALL WebView2 thread access errors (they're harmless but spammy)
+                        # These happen because pywebview tries to introspect from wrong thread
+                        if 'corewebview2' in text_lower:
+                            # Filter all CoreWebView2-related errors from introspection
+                            if 'ui thread' in text_lower or 'can only be accessed' in text_lower:
                                 return
-                        if 'accessibilityobject' in text.lower() and 'bounds' in text.lower():
+                            if 'invalidcast' in text_lower or 'no such interface' in text_lower:
+                                return
+                        
+                        # Filter COM interface casting errors that are harmless
+                        if 'unable to cast' in text_lower:
+                            # Filter all COM casting errors from pywebview introspection
                             return
-                        if 'corewebview2' in text.lower() and ('invalidcast' in text.lower() or 'no such interface' in text.lower()):
+                        
+                        # Filter accessibility object errors
+                        if 'accessibilityobject' in text_lower:
                             return
+                        
+                        # Filter abstract methods errors
                         if '__abstractmethods__' in text:
                             return
+                        
+                        # Filter any pywebview error that mentions window.native (introspection)
+                        if 'window.native' in text_lower:
+                            return
+                        
+                        # Filter System.InvalidCastException errors (all from introspection)
+                        if 'invalidcastexception' in text_lower:
+                            return
+                        
                         # Let other pywebview errors through (they might be important)
                         # Especially initialization failures
                     
@@ -272,8 +324,11 @@ def main():
         else:
             webview_module.start(storage_path=storage_path, private_mode=False, debug=True)
     finally:
+        # Restore recursion limit before cleanup
+        sys.setrecursionlimit(original_recursion_limit)
         # Cleanup on exit
         cleanup_pid_file()
 
 if __name__ == '__main__':
     main()
+
