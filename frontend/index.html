@@ -767,9 +767,21 @@
                         <!-- Repeat Commands View -->
                         <div x-show="activeView === 'repeat'" class="flex flex-col h-full">
                             <!-- Header -->
-                            <div class="p-4 border-b border-slate-700">
-                                <h2 class="text-lg font-semibold text-slate-100">Repeat</h2>
-                                <p class="text-xs text-slate-400 mt-0.5">Periodic command execution</p>
+                            <div
+                                class="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Repeat</h2>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Periodic command
+                                        execution</p>
+                                </div>
+                                <button @click="openRepeatModal()"
+                                    class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                    title="Add Repeat Command">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                </button>
                             </div>
 
                             <div class="flex-1 overflow-y-auto p-3 space-y-2">
