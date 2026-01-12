@@ -344,10 +344,13 @@
                         x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full"
                         style="overflow: visible;">
 
-                        <!-- Resize Handle (Gutter) -->
+                        <!-- Resize Handle (Gutter) - wider but positioned to not block scrollbar -->
                         <div @mousedown.stop="startResizing($event)"
-                            class="absolute top-0 right-0 w-2 h-full cursor-ew-resize hover:bg-indigo-500/50 active:bg-indigo-500/70 transition-colors"
-                            style="touch-action: none; z-index: 9999; pointer-events: auto;">
+                            class="absolute top-0 h-full cursor-ew-resize transition-colors"
+                            style="right: -3px; width: 6px; touch-action: none; z-index: 10; pointer-events: auto; background: transparent;"
+                            @mouseenter="$el.style.background = 'rgba(99, 102, 241, 0.3)'"
+                            @mouseleave="$el.style.background = 'transparent'"
+                            @mousedown="$el.style.background = 'rgba(99, 102, 241, 0.5)'">
                         </div>
 
                         <!-- Commands View -->
