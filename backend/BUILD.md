@@ -90,6 +90,58 @@ The executable bundles:
    - Build on a system with the same or older GLIBC version as your target
    - Or use a container/Docker with the target GLIBC version
 
+### "No module named gi" error on Linux
+
+**Error:** `ModuleNotFoundError: No module named 'gi'`
+
+**Cause:** PyInstaller is trying to bundle GTK libraries, but the project uses Qt, not GTK.
+
+**Solution:** The spec file already excludes GTK/gi modules. If you still see this error:
+
+1. **Rebuild with the updated spec file:**
+   ```bash
+   ./build.sh
+   ```
+
+2. **Ensure Qt is properly installed:**
+   ```bash
+   pip install PyQt6 PyQt6-WebEngine
+   ```
+
+3. **Verify pywebview uses Qt:**
+   The code now explicitly forces Qt backend on Linux. Check the console output for "Using Qt backend for pywebview on Linux".
+
+### "No Qt platform plugin could be initialized" error on Linux
+
+**Error:** `qt.qpa.plugin: Could not find the Qt platform plugin "xcb"`
+
+**Cause:** PyInstaller doesn't automatically bundle Qt platform plugins (xcb, wayland, etc.) which are required for Qt to work on Linux.
+
+**Solution:** The spec file now automatically includes Qt platform plugins. If you still see this error:
+
+1. **Rebuild with the updated spec file:**
+   ```bash
+   ./build.sh
+   ```
+
+2. **Verify Qt plugins are bundled:**
+   Check the build output for messages like "Found Qt plugins at:" and "Adding X Qt plugin directories"
+
+3. **Check the bundled plugins:**
+   ```bash
+   ls -la dist/zfield/PyQt6/Qt6/plugins/platforms/
+   # Should show libqxcb.so and other platform plugins
+   ```
+
+4. **If plugins are missing, install PyQt6 system-wide:**
+   ```bash
+   # On Ubuntu/Debian:
+   sudo apt-get install python3-pyqt6 python3-pyqt6-webengine
+   
+   # Then rebuild
+   ./build.sh
+   ```
+
 ### Build fails with missing modules
 
 Add the missing module to `hiddenimports` in `zfield_gui_linux.spec`:

@@ -169,6 +169,37 @@ def main():
     # Use the imported module explicitly to avoid scoping issues
     webview_module = _webview_module
     
+    # On Linux, force Qt backend to avoid GTK/gi dependency
+    if sys.platform == 'linux':
+        try:
+            # Explicitly import Qt platform to ensure it's used
+            import webview.platforms.qt
+            # Set environment variable to prefer Qt
+            os.environ['PYWEBVIEW_QT'] = '1'
+            
+            # Set Qt platform plugin path for PyInstaller bundles
+            # This is needed when running from a PyInstaller bundle
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                base_path = Path(sys._MEIPASS)
+                plugin_path = base_path / 'PyQt6' / 'Qt6' / 'plugins'
+                if plugin_path.exists():
+                    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = str(plugin_path)
+                    print(f"Set Qt plugin path to: {plugin_path}")
+            else:
+                # Running as script - use system Qt plugins
+                try:
+                    from PyQt6.QtCore import QLibraryInfo
+                    qt_plugin_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
+                    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = qt_plugin_path
+                except Exception:
+                    pass  # Use default Qt plugin discovery
+            
+            print("Using Qt backend for pywebview on Linux")
+        except ImportError as e:
+            print(f"WARNING: Qt backend not available: {e}")
+            print("Please ensure PyQt6 and PyQt6-WebEngine are installed")
+    
     # Create window with minimal delay - don't wait for full initialization
     # Enable debug mode to allow DevTools access even if page doesn't load
     window = webview_module.create_window(
