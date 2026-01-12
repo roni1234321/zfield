@@ -38,7 +38,19 @@ source .venv/bin/activate
 python --version  # Should show Python 3.10.x
 ```
 
-### Step 3: Install Dependencies
+### Step 3: Install System Dependencies
+
+```bash
+# Install required system libraries for Qt xcb plugin
+# Ubuntu/Debian:
+sudo apt-get install libxcb-cursor0 libxcb1 libxcb-xinerama0 libxcb-xkb1 \
+    libxkbcommon0 libxkbcommon-x11-0 libxcb-render0 libxcb-render-util0 \
+    libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinput0 \
+    libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+    libxcb-shm0 libxcb-util1
+```
+
+### Step 4: Install Python Dependencies
 
 ```bash
 # Install project dependencies
@@ -48,7 +60,7 @@ pip install -e ".[linux]"
 pip install pywebview[qt] fastapi uvicorn[standard] pyserial pydantic pydantic-settings pyinstaller psutil PyQt6 PyQt6-WebEngine
 ```
 
-### Step 4: Build with Python 3.10
+### Step 5: Build with Python 3.10
 
 ```bash
 # The build script will automatically check Python version

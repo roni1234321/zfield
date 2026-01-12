@@ -133,7 +133,17 @@ The executable bundles:
    # Should show libqxcb.so and other platform plugins
    ```
 
-4. **If plugins are missing, install PyQt6 system-wide:**
+4. **Install required system libraries for Qt xcb plugin:**
+   ```bash
+   # On Ubuntu/Debian:
+   sudo apt-get install libxcb-cursor0 libxcb1 libxcb-xinerama0 libxcb-xkb1 \
+       libxkbcommon0 libxkbcommon-x11-0 libxcb-render0 libxcb-render-util0 \
+       libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinput0 \
+       libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+       libxcb-shm0 libxcb-util1
+   ```
+
+5. **If plugins are missing, install PyQt6 system-wide:**
    ```bash
    # On Ubuntu/Debian:
    sudo apt-get install python3-pyqt6 python3-pyqt6-webengine

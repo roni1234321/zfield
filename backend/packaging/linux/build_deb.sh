@@ -72,8 +72,24 @@ fpm -s dir -t deb \
     --license "MIT" \
     --category "devel" \
     --architecture amd64 \
-    --depends "libgtk-3-0" \
-    --depends "libwebkit2gtk-4.0-37 | libwebkit2gtk-4.1-0" \
+    --depends "libxcb-cursor0" \
+    --depends "libxcb1" \
+    --depends "libxcb-xinerama0" \
+    --depends "libxcb-xkb1" \
+    --depends "libxkbcommon0" \
+    --depends "libxkbcommon-x11-0" \
+    --depends "libxcb-render0" \
+    --depends "libxcb-render-util0" \
+    --depends "libxcb-shape0" \
+    --depends "libxcb-sync1" \
+    --depends "libxcb-xfixes0" \
+    --depends "libxcb-xinput0" \
+    --depends "libxcb-icccm4" \
+    --depends "libxcb-image0" \
+    --depends "libxcb-keysyms1" \
+    --depends "libxcb-randr0" \
+    --depends "libxcb-shm0" \
+    --depends "libxcb-util1" \
     --deb-priority "optional" \
     --after-install packaging/linux/postinstall.sh \
     --after-remove packaging/linux/postremove.sh \
