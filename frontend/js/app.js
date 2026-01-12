@@ -24,6 +24,8 @@ function terminalApp() {
         activeView: 'commands', // VSCode-style sidebar view
         sidebarWidth: 320,
         isResizing: false,
+        resizeStartX: 0,
+        resizeStartWidth: 320,
         appVersion: { version: '0.0.0', full_version: 'v0.0.0' },
 
         // Sidebar Icon State
@@ -981,17 +983,28 @@ function terminalApp() {
 
         startResizing(e) {
             e.preventDefault();
+            e.stopPropagation();
             this.isResizing = true;
+            this.resizeStartX = e.clientX;
+            this.resizeStartWidth = this.sidebarWidth;
             document.body.style.cursor = 'ew-resize';
             document.body.style.userSelect = 'none'; // Prevent text selection
+            console.log('Resize started:', { startX: this.resizeStartX, startWidth: this.resizeStartWidth });
         },
 
         doResize(e) {
             if (!this.isResizing) return;
+            if (!e) return; // Safety check
+
+            e.preventDefault();
+
+            // Calculate new width based on mouse movement from start position
+            const deltaX = e.clientX - this.resizeStartX;
+            const newWidth = this.resizeStartWidth + deltaX;
 
             // Minimal 150px, Maximal half screen
-            const newWidth = Math.max(150, Math.min(e.clientX - 48, window.innerWidth / 2));
-            this.sidebarWidth = newWidth;
+            const constrainedWidth = Math.max(150, Math.min(newWidth, window.innerWidth / 2));
+            this.sidebarWidth = constrainedWidth;
 
             // Debounced terminal fit to keep it snappy
             this.resizeTerminal();
