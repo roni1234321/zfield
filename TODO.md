@@ -10,3 +10,4 @@
 - [ ] make commands scanning faster 
 - [ ] make commmand scan speed configurable
 - [ ] add option for respond delay
+- [ ] save project does not saves to selected project file it just opens new prompt
