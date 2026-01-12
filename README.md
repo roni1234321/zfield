@@ -15,7 +15,7 @@ A web-based serial terminal application for Zephyr RTOS development and debuggin
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.10 (tested and compatible)
 - pip (Python package manager)
 - Serial port access (USB serial adapter or built-in serial port)
 

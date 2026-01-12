@@ -60,9 +60,39 @@ The executable bundles:
 
 ## Troubleshooting
 
+### GLIBC or libpython3.11.so errors on Linux
+
+**Error:** `failed to load python shared library libpython3.11.so.1.0 GLIBC_2.38 not found`
+
+**Cause:** The executable was built with Python 3.11+ but your system only has Python 3.10 or an older GLIBC.
+
+**Solution:**
+1. **Build with Python 3.10:**
+   ```bash
+   # Ensure you're using Python 3.10
+   python3.10 --version
+   
+   # Create a virtual environment with Python 3.10
+   python3.10 -m venv .venv
+   source .venv/bin/activate
+   
+   # Install dependencies and build
+   pip install -e ".[linux]"
+   ./build.sh
+   ```
+
+2. **Check your Python version before building:**
+   ```bash
+   python3 --version  # Should show Python 3.10.x
+   ```
+
+3. **If you must use a newer Python, ensure GLIBC compatibility:**
+   - Build on a system with the same or older GLIBC version as your target
+   - Or use a container/Docker with the target GLIBC version
+
 ### Build fails with missing modules
 
-Add the missing module to `hiddenimports` in `zfield_gui.spec`:
+Add the missing module to `hiddenimports` in `zfield_gui_linux.spec`:
 
 ```python
 hiddenimports=[
@@ -73,7 +103,7 @@ hiddenimports=[
 
 ### Frontend files not found
 
-Ensure the frontend path in `zfield_gui.spec` is correct relative to the spec file location.
+Ensure the frontend path in `zfield_gui_linux.spec` is correct relative to the spec file location.
 
 ### Serial port access issues
 

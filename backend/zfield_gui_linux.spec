@@ -29,6 +29,13 @@ if os.path.exists(f'{frontend_path}/icon.png'):
 if os.path.exists(f'{frontend_path}/logo.png'):
     frontend_datas.append((f'{frontend_path}/logo.png', 'frontend'))
 
+# Exclude Python 3.11+ modules to ensure compatibility with Python 3.10
+excludes = [
+    'libpython3.11',
+    'libpython3.12',
+    'libpython3.13',
+]
+
 a = Analysis(
     ['gui.py'],
     pathex=[],
@@ -58,12 +65,19 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=excludes,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Filter out Python 3.11+ shared libraries from binaries
+# This ensures compatibility with Python 3.10 systems
+# IMPORTANT: Build must be done with Python 3.10 to avoid this issue
+a.binaries = [x for x in a.binaries if not any(
+    ver in x[0] for ver in ['libpython3.11', 'libpython3.12', 'libpython3.13']
+)]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
