@@ -81,6 +81,10 @@ function terminalApp() {
         discoveryCancelRequested: false,
         searchCommands: '',
         commandScanSpeed: 'normal', // fast, normal, slow
+        showCommandSelectionModal: false, // Show modal to select commands for deep scan
+        enableCommandSelectionModal: true, // Setting to enable/disable the modal
+        selectedCommandsForDeepScan: [], // Commands selected for deep scan
+        topLevelCommands: [], // Store top-level commands after initial scan
 
         // Modal State (Unified for Scanned & Custom)
         showCustomCommandModal: false,
@@ -168,6 +172,19 @@ function terminalApp() {
             }
 
             const savedOmitSent = localStorage.getItem('zfield_omit_sent');
+            if (savedOmitSent !== null) {
+                this.omitSent = savedOmitSent === 'true';
+            }
+
+            // Load command selection modal setting (default to true if not set)
+            const savedEnableCommandSelectionModal = localStorage.getItem('zfield_enable_command_selection_modal');
+            if (savedEnableCommandSelectionModal !== null) {
+                this.enableCommandSelectionModal = savedEnableCommandSelectionModal === 'true';
+            } else {
+                // Default to true if not set
+                this.enableCommandSelectionModal = true;
+                localStorage.setItem('zfield_enable_command_selection_modal', 'true');
+            }
             if (savedOmitSent !== null) {
                 this.omitSent = savedOmitSent === 'true';
             }
@@ -1697,6 +1714,7 @@ function terminalApp() {
                     });
                     localStorage.setItem('zfield_log_mode', this.logMode);
                     localStorage.setItem('zfield_omit_sent', this.omitSent);
+                    localStorage.setItem('zfield_enable_command_selection_modal', this.enableCommandSelectionModal);
                     this.showToast('Logging settings updated', 'success');
                 } catch (e) {
                     console.error('Failed to update logging settings:', e);
@@ -2168,29 +2186,38 @@ function terminalApp() {
                 // Wait for discovery to complete (with timeout)
                 await this.waitForDiscoveryCompletion(300);
 
-                this.showStatus('Commands scanned successfully! Discovering deep subcommands...', 'success');
+                this.showStatus('Commands scanned successfully!', 'success');
                 this.showCommands = true;
 
-                // Recursive deep discovery
-                await this.discoverAllSubcommands();
+                // Store top-level commands for selection modal
+                // Filter to only include commands with valid id and name properties
+                this.topLevelCommands = this.commands.filter(cmd =>
+                    cmd && typeof cmd === 'object' && cmd.id && cmd.name
+                );
+                console.log('Top-level commands found:', this.topLevelCommands.length);
+                console.log('enableCommandSelectionModal:', this.enableCommandSelectionModal);
+                console.log('Sample command:', this.topLevelCommands[0]);
 
-                if (this.discoveryCancelRequested) {
-                    this.showStatus('Command discovery cancelled by user.', 'info');
-                } else {
-                    // Strip category commands that only serve as parents and just print help text
-                    const initialCount = this.commands.length;
-                    this.commands = this.commands.filter(c => !c.isCategory || c.isCustom);
-                    this.saveCachedCommands(this.commands);
+                // Always show command selection modal after initial scan
+                // Initialize all commands as selected by default
+                this.selectedCommandsForDeepScan = this.topLevelCommands.map(cmd => cmd.id);
+                console.log('Showing command selection modal with', this.selectedCommandsForDeepScan.length, 'commands selected');
+                console.log('Top-level commands:', this.topLevelCommands.map(c => c.name));
 
-                    const strippedCount = initialCount - this.commands.length;
-                    console.log(`Stripped ${strippedCount} category-only commands.`);
-                    this.showStatus(`All commands scanned! Found ${this.commands.length} executable commands.`, 'success');
-                }
+                // Show the modal
+                this.showCommandSelectionModal = true;
+                console.log('showCommandSelectionModal set to:', this.showCommandSelectionModal);
+
+                // Wait for user to select commands (modal will call proceedWithDeepScan)
+                return; // Exit early, proceedWithDeepScan will continue
+
+                // If modal is disabled, proceed directly with deep scan
+                console.log('Modal disabled, proceeding directly with deep scan');
+                await this.proceedWithDeepScan();
             } catch (error) {
                 console.error('Error scanning commands:', error);
                 this.showStatus('Error scanning commands: ' + error.message, 'error');
                 console.log('Collected data:', this.discoveryCollectedData.substring(0, 500));
-            } finally {
                 this.loadingCommands = false;
                 this.commandDiscoveryInProgress = false;
                 this.discoveryLock = false;
@@ -2198,15 +2225,82 @@ function terminalApp() {
             }
         },
 
+        // Proceed with deep scan after command selection
+        async proceedWithDeepScan() {
+            this.showStatus('Discovering deep subcommands...', 'info');
+            await this.discoverAllSubcommands();
+
+            if (this.discoveryCancelRequested) {
+                this.showStatus('Command discovery cancelled by user.', 'info');
+            } else {
+                // Strip category commands that only serve as parents and just print help text
+                const initialCount = this.commands.length;
+                this.commands = this.commands.filter(c => !c.isCategory || c.isCustom);
+                this.saveCachedCommands(this.commands);
+
+                const strippedCount = initialCount - this.commands.length;
+                console.log(`Stripped ${strippedCount} category-only commands.`);
+                this.showStatus(`All commands scanned! Found ${this.commands.length} executable commands.`, 'success');
+            }
+
+            this.loadingCommands = false;
+            this.commandDiscoveryInProgress = false;
+            this.discoveryLock = false;
+            this.discoveryProgress = { current: 0, total: 0 };
+        },
+
+        // Close command selection modal and proceed
+        closeCommandSelectionModal() {
+            this.showCommandSelectionModal = false;
+            // If no commands selected, don't proceed with deep scan
+            if (this.selectedCommandsForDeepScan.length === 0) {
+                this.showStatus('No commands selected for deep scan.', 'info');
+                this.loadingCommands = false;
+                this.commandDiscoveryInProgress = false;
+                this.discoveryLock = false;
+                return;
+            }
+            // Proceed with deep scan for selected commands only
+            this.proceedWithDeepScan();
+        },
+
+        // Toggle command selection
+        toggleCommandSelection(commandId) {
+            const index = this.selectedCommandsForDeepScan.indexOf(commandId);
+            if (index > -1) {
+                this.selectedCommandsForDeepScan.splice(index, 1);
+            } else {
+                this.selectedCommandsForDeepScan.push(commandId);
+            }
+        },
+
+        // Select all commands
+        selectAllCommands() {
+            this.selectedCommandsForDeepScan = this.topLevelCommands.map(cmd => cmd.id);
+        },
+
+        // Deselect all commands
+        deselectAllCommands() {
+            this.selectedCommandsForDeepScan = [];
+        },
+
         // Recursive discovery for all commands and their children
         async discoverAllSubcommands() {
             if (this.commands.length === 0) return;
 
-            console.log(`Starting deep subcommand discovery for ${this.commands.length} top-level commands`);
-            this.discoveryProgress = { current: 0, total: this.commands.length };
+            // Filter to only selected commands if commands were selected
+            let commandsToScan = this.commands;
+            if (this.selectedCommandsForDeepScan.length > 0) {
+                commandsToScan = this.commands.filter(cmd =>
+                    this.selectedCommandsForDeepScan.includes(cmd.id)
+                );
+            }
+
+            console.log(`Starting deep subcommand discovery for ${commandsToScan.length} top-level commands`);
+            this.discoveryProgress = { current: 0, total: commandsToScan.length };
 
             // Start with top-level commands as base total
-            const roots = this.commands.filter(c => c.isRoot || c.isCustom || !c.parentName);
+            const roots = commandsToScan.filter(c => c.isRoot || c.isCustom || !c.parentName);
             this.discoveryProgress = { current: 0, total: roots.length };
 
             for (let i = 0; i < roots.length; i++) {
