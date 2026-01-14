@@ -2366,6 +2366,16 @@ function terminalApp() {
                     for (let j = 0; j < subcommands.length; j++) {
                         const sub = subcommands[j];
 
+                        // Additional safety check: prevent recursion if subcommand name matches last segment of parent
+                        const parentFullName = command.fullName || command.name || '';
+                        const parentSegments = parentFullName.trim().split(/\s+/);
+                        const lastParentSegment = parentSegments[parentSegments.length - 1];
+
+                        if (sub.name === lastParentSegment) {
+                            console.log(`  ! Skipping recursive subcommand: ${sub.name} matches last segment of parent ${parentFullName}`);
+                            continue;
+                        }
+
                         // Check if already exists in flat list
                         const existingIdx = this.commands.findIndex(c => c.fullName === sub.fullName);
 
@@ -2898,6 +2908,16 @@ function terminalApp() {
 
                         // Skip if it looks like the parent command itself
                         if (subCmdName === parentCommand) {
+                            console.log(`  ! Skipping subcommand that matches parent command: ${subCmdName}`);
+                            continue;
+                        }
+
+                        // Skip if subcommand name equals the last segment of parent command
+                        // This prevents recursion like "net stats iface 0" discovering "0" as a subcommand
+                        const parentSegments = parentCommand.trim().split(/\s+/);
+                        const lastParentSegment = parentSegments[parentSegments.length - 1];
+                        if (subCmdName === lastParentSegment) {
+                            console.log(`  ! Skipping subcommand that matches last segment of parent: ${subCmdName} (parent: ${parentCommand})`);
                             continue;
                         }
 
