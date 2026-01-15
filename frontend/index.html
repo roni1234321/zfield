@@ -732,19 +732,26 @@
                                 </div>
                             </div>
 
-                            <!-- Rescan Button -->
+                            <!-- Rescan/Cancel Button -->
                             <div class="border-t border-gray-200 dark:border-slate-700 p-3">
-                                <button @click="scanCommands(true)"
-                                    class="w-full inline-flex items-center justify-center px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white font-semibold rounded-md shadow-sm text-xs transition-all duration-200"
-                                    :disabled="!connected || loadingCommands">
-                                    <svg class="w-3 h-3 mr-1.5" :class="loadingCommands ? 'animate-spin' : ''"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button @click="loadingCommands ? cancelDiscovery() : scanCommands(true)"
+                                    :class="loadingCommands ? 'bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600' : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'"
+                                    class="w-full inline-flex items-center justify-center px-3 py-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white font-semibold rounded-md shadow-sm text-xs transition-all duration-200"
+                                    :disabled="!connected">
+                                    <svg x-show="!loadingCommands" class="w-3 h-3 mr-1.5" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                                         </path>
                                     </svg>
+                                    <svg x-show="loadingCommands" class="w-3 h-3 mr-1.5" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12">
+                                        </path>
+                                    </svg>
                                     <span
-                                        x-text="loadingCommands ? (discoveryProgress.total > 0 ? ('Discovering ' + discoveryProgress.current + '/' + discoveryProgress.total + ' (' + Math.round((discoveryProgress.current / discoveryProgress.total) * 100) + '%)') : 'Scanning...') : 'Rescan'"></span>
+                                        x-text="loadingCommands ? (discoveryProgress.total > 0 ? ('Discovering ' + discoveryProgress.current + '/' + discoveryProgress.total + ' (' + Math.round((discoveryProgress.current / discoveryProgress.total) * 100) + '%) - Cancel') : 'Cancel Scan') : 'Rescan'"></span>
                                 </button>
                             </div>
 
@@ -2091,7 +2098,7 @@
                     <!-- Footer -->
                     <div
                         class="px-6 py-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                        <button @click="closeCommandSelectionModal()"
+                        <button @click="cancelCommandSelectionModal()"
                             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors">
                             Cancel
                         </button>

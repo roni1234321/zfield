@@ -2216,12 +2216,15 @@ function terminalApp() {
                 await this.proceedWithDeepScan();
             } catch (error) {
                 console.error('Error scanning commands:', error);
-                this.showStatus('Error scanning commands: ' + error.message, 'error');
+                if (!this.discoveryCancelRequested) {
+                    this.showStatus('Error scanning commands: ' + error.message, 'error');
+                }
                 console.log('Collected data:', this.discoveryCollectedData.substring(0, 500));
                 this.loadingCommands = false;
                 this.commandDiscoveryInProgress = false;
                 this.discoveryLock = false;
                 this.discoveryProgress = { current: 0, total: 0 };
+                this.discoveryCancelRequested = false;
             }
         },
 
@@ -2247,6 +2250,15 @@ function terminalApp() {
             this.commandDiscoveryInProgress = false;
             this.discoveryLock = false;
             this.discoveryProgress = { current: 0, total: 0 };
+        },
+
+        // Cancel command selection modal (just close without proceeding)
+        cancelCommandSelectionModal() {
+            this.showCommandSelectionModal = false;
+            this.loadingCommands = false;
+            this.commandDiscoveryInProgress = false;
+            this.discoveryLock = false;
+            this.selectedCommandsForDeepScan = [];
         },
 
         // Close command selection modal and proceed
@@ -2304,7 +2316,10 @@ function terminalApp() {
             this.discoveryProgress = { current: 0, total: roots.length };
 
             for (let i = 0; i < roots.length; i++) {
-                if (this.discoveryCancelRequested) break;
+                if (this.discoveryCancelRequested) {
+                    console.log('Discovery cancelled, stopping subcommand discovery');
+                    break;
+                }
 
                 const cmd = roots[i];
                 if (cmd.isCustom) {
@@ -2418,9 +2433,22 @@ function terminalApp() {
         },
 
         cancelDiscovery() {
+            console.log('cancelDiscovery() called');
             this.discoveryCancelRequested = true;
-            this.discoveryPaused = false;
+            this.discoveryPaused = false; // This breaks the wait loop in discoverDeep
             this.showDiscoveryConfirm = false;
+            this.showStatus('Cancelling command discovery...', 'info');
+
+            // Immediately stop the discovery process
+            this.loadingCommands = false;
+            this.commandDiscoveryInProgress = false;
+            this.discoveryLock = false;
+            this.discoveryProgress = { current: 0, total: 0 };
+
+            // Reset cancel flag after a short delay to allow cleanup
+            setTimeout(() => {
+                this.discoveryCancelRequested = false;
+            }, 1000);
         },
 
         // Safe helper to get direct subcommands for the UI
