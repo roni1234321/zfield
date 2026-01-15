@@ -211,6 +211,24 @@ def main():
         js_api=window_api,  # Expose Python functions directly to JavaScript
         shadow=False  # Disable shadow for faster rendering on Windows
     )
+    
+    # Set up loaded event callback to signal when webview is ready
+    # This prevents freezing when users interact before pywebview is fully initialized
+    def on_loaded(window):
+        """Called when pywebview has finished loading the page."""
+        try:
+            # Inject JavaScript to signal that webview is ready
+            # This fires exactly when pywebview's loaded event occurs - no delays needed
+            window.evaluate_js("""
+                window.pywebviewReady = true;
+                window.dispatchEvent(new CustomEvent('pywebviewready'));
+            """)
+            print("[pywebview] Webview ready signal sent to JavaScript")
+        except Exception as e:
+            print(f"[pywebview] Warning: Could not signal webview ready: {e}")
+    
+    # Register the loaded event callback
+    window.events.loaded += on_loaded
 
     # Set window reference in API after window is created
     window_api.set_window(window)

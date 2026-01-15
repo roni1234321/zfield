@@ -135,8 +135,14 @@
 </head>
 
 <body class="bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
-    <div x-data="terminalApp()" @mousemove.window="doResize($event)" @mouseup.window="stopResizing()"
+    <div x-data="terminalApp()" x-init="init()" @mousemove.window="doResize($event)" @mouseup.window="stopResizing()"
         class="h-screen flex flex-col relative">
+        <!-- Blocking overlay to prevent interactions until webview is ready -->
+        <div x-show="!webviewReady" x-cloak 
+            class="fixed inset-0 bg-gray-50 dark:bg-slate-900 z-[9999] pointer-events-auto"
+            @keydown.stop @keyup.stop @mousedown.stop @mouseup.stop @click.stop
+            style="display: none;">
+        </div>
         <header
             class="bg-gray-100 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 shadow-sm transition-colors duration-200 flex items-center px-3 py-1.5 select-none text-xs h-10 shrink-0"
             style="overflow: visible; position: relative; z-index: 1000;" @mousedown="startWindowDrag($event)"

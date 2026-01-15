@@ -2,6 +2,7 @@
 function terminalApp() {
     return {
         // State
+        webviewReady: false, // Flag to track if webview is fully loaded
         connected: false,
         showAbout: false,
         showSettings: false,
@@ -280,6 +281,24 @@ function terminalApp() {
                     if (s.terminal && s.fitAddon) s.fitAddon.fit();
                 });
             });
+
+            // Listen for pywebview ready event - fired by pywebview's loaded callback
+            // This is event-driven and more robust than delays - no arbitrary waiting
+            const markWebviewReady = () => {
+                if (this.webviewReady) return; // Already marked as ready
+                this.webviewReady = true;
+                console.log("Webview ready - interactions enabled");
+            };
+
+            // Listen for the custom event dispatched by pywebview's loaded callback
+            // This fires exactly when pywebview has finished loading (no delay needed)
+            window.addEventListener('pywebviewready', markWebviewReady, { once: true });
+
+            // Fallback: Check if flag was already set (handles race condition where 
+            // pywebview loads before our listener is attached)
+            if (window.pywebviewReady) {
+                markWebviewReady();
+            }
         },
 
         // Initialize Repeat Commands from localStorage
@@ -1048,6 +1067,7 @@ function terminalApp() {
         // ============ SIDEBAR RESIZING ============
 
         startResizing(e) {
+            if (!this.webviewReady) return; // Prevent interactions until webview is ready
             e.preventDefault();
             e.stopPropagation();
             this.isResizing = true;
@@ -1059,6 +1079,7 @@ function terminalApp() {
         },
 
         doResize(e) {
+            if (!this.webviewReady) return; // Prevent interactions until webview is ready
             if (!this.isResizing) return;
             if (!e) return; // Safety check
 
