@@ -1916,7 +1916,13 @@ function terminalApp() {
                 session.connected = true; // Update reactive property
                 this.updateCanExecuteScripts(); // Update reactive flag
                 this.showToast(`Connected to ${session.port}`, 'success');
-                // Removed automatic \r on connect to avoid prompt flooding on refresh
+                // Focus terminal after connection to ensure it's ready for input
+                if (session.terminal) {
+                    // Small delay to ensure terminal is fully initialized
+                    setTimeout(() => {
+                        session.terminal.focus();
+                    }, 100);
+                }
             };
 
             session.ws.onmessage = (event) => {
@@ -2156,10 +2162,22 @@ function terminalApp() {
                             if (initResult) {
                                 session.terminal = initResult.term;
                                 session.fitAddon = initResult.fitAddon;
+                                // Focus terminal after initialization
+                                setTimeout(() => {
+                                    if (session.terminal) {
+                                        session.terminal.focus();
+                                    }
+                                }, 50);
                                 this.connectWebSocket(session);
                             }
                         } else {
                             // Reconnect WebSocket for existing terminal
+                            // Focus terminal to ensure it's ready
+                            setTimeout(() => {
+                                if (session.terminal) {
+                                    session.terminal.focus();
+                                }
+                            }, 50);
                             this.connectWebSocket(session);
                         }
                     });
