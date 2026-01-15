@@ -1400,6 +1400,23 @@ function terminalApp() {
             }
             this.canExecuteScripts = session.connected === true && session.ws && session.ws.readyState === WebSocket.OPEN;
         },
+        canExecuteScript() {
+            // Update the reactive flag based on current state
+            if (this.runningScript !== null) {
+                this.canExecuteScripts = false;
+                return;
+            }
+            if (!this.activeSessionId) {
+                this.canExecuteScripts = false;
+                return;
+            }
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session) {
+                this.canExecuteScripts = false;
+                return;
+            }
+            this.canExecuteScripts = session.connected === true && session.ws && session.ws.readyState === WebSocket.OPEN;
+        },
         get terminalFitAddon() {
             return this.activeSession ? this.activeSession.fitAddon : null;
         },
@@ -2661,42 +2678,68 @@ function terminalApp() {
             });
         },
 
-        parseRetvalResponse(buffer) {
+        parseRetvalResponse(buffer, startIndex = null) {
             if (!buffer) return null;
 
-            // Look for numeric return code after "retval" command
-            // Common formats: "0", "1", "retval: 0", "Return code: 1", etc.
+            // Remove ANSI escape codes that might interfere
+            let cleanBuffer = buffer.replace(/\x1b\[[0-9;]*m/g, '').replace(/\x1b\[[0-9]*[A-Za-z]/g, '');
+
+            // Smart approach: If startIndex is provided, only look at content after that point
+            // This ensures we parse the most recent retval, not an old one
+            const searchBuffer = startIndex !== null && startIndex < cleanBuffer.length
+                ? cleanBuffer.slice(startIndex)  // Only new content after retval was sent
+                : cleanBuffer.slice(-800); // Fallback: last 800 chars if no start index
+
+            // Look for numeric return code (including negative values like -1)
+            // Common formats: "0", "1", "-1", "retval: 0", "Return code: 1", etc.
             const patterns = [
-                /retval[\s:]*(\d+)/i,
-                /return[\s]*code[\s:]*(\d+)/i,
-                /^[\s]*(\d+)[\s]*$/m, // Just a number on a line
+                /retval[\s:]*(-?\d+)/i,
+                /return[\s]*code[\s:]*(-?\d+)/i,
             ];
 
-            // Check last 500 chars for retval output
-            const lastPart = buffer.slice(-500);
+            // Find all matches and get the last one (most recent)
+            let lastMatch = null;
+            let lastMatchPosition = -1;
 
             for (const pattern of patterns) {
-                const match = lastPart.match(pattern);
-                if (match) {
-                    const code = parseInt(match[1], 10);
+                const regex = new RegExp(pattern, 'gi');
+                let match;
+                // Find all matches and track the last one
+                while ((match = regex.exec(searchBuffer)) !== null) {
+                    if (match.index > lastMatchPosition) {
+                        lastMatch = match;
+                        lastMatchPosition = match.index;
+                    }
+                }
+            }
+
+            if (lastMatch) {
+                const code = parseInt(lastMatch[1], 10);
+                if (!isNaN(code)) {
+                    console.log(`Parsed retval: ${code} (from position ${lastMatchPosition})`);
+                    return code;
+                }
+            }
+
+            // Fallback: Look for standalone numbers in the search buffer
+            // Check lines from most recent to oldest
+            const lines = searchBuffer.split('\n');
+            const lastLines = lines.slice(-8); // Check last 8 lines
+
+            for (let i = lastLines.length - 1; i >= 0; i--) {
+                const line = lastLines[i].trim();
+                // Look for a standalone number (possibly negative)
+                const numberMatch = line.match(/^(-?\d+)$/);
+                if (numberMatch) {
+                    const code = parseInt(numberMatch[1], 10);
                     if (!isNaN(code)) {
+                        console.log(`Parsed retval: ${code} (standalone number)`);
                         return code;
                     }
                 }
             }
 
-            // Fallback: look for any standalone number in last few lines
-            const lines = lastPart.split('\n').slice(-5);
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (/^\d+$/.test(trimmed)) {
-                    const code = parseInt(trimmed, 10);
-                    if (!isNaN(code)) {
-                        return code;
-                    }
-                }
-            }
-
+            console.warn('Could not parse retval response');
             return null;
         },
 
@@ -2764,14 +2807,17 @@ function terminalApp() {
                     // Wait for command to complete (prompt appears)
                     await this.waitForPrompt(session, 10000);
 
+                    // Store buffer state before sending retval to only parse new content
+                    const bufferBeforeRetval = session.terminalBuffer ? session.terminalBuffer.length : 0;
+
                     // Send retval command to check return code
                     session.ws.send('retval\n');
 
                     // Wait for retval command to complete
                     await this.waitForPrompt(session, 5000);
 
-                    // Parse retval response
-                    const returnCode = this.parseRetvalResponse(session.terminalBuffer);
+                    // Parse retval response - only look at content that came after we sent retval
+                    const returnCode = this.parseRetvalResponse(session.terminalBuffer, bufferBeforeRetval);
 
                     if (returnCode !== null && returnCode !== 0) {
                         // Non-zero return code
