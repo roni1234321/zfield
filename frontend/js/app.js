@@ -27,6 +27,9 @@ function terminalApp() {
         isResizing: false,
         resizeStartX: 0,
         resizeStartWidth: 320,
+        isWindowDragging: false,
+        windowDragStartX: 0,
+        windowDragStartY: 0,
         appVersion: { version: '0.0.0', full_version: 'v0.0.0' },
 
         // Sidebar Icon State
@@ -34,6 +37,7 @@ function terminalApp() {
             { id: 'commands', title: 'Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>' },
             { id: 'connection', title: 'Connection', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a1 1 0 0 1-1-1v-1a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 15V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V9" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21v-2h-4" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 5a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4z" /></svg>' },
             { id: 'repeat', title: 'Repeat Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' },
+            { id: 'scripts', title: 'Shell Scripts', icon: '<span class="codicon codicon-code" style="font-size: 20px;"></span>' },
             { id: 'settings', title: 'Project Settings', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' },
             { id: 'sequences', title: 'Response Sequences', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path></svg>' },
             { id: 'counters', title: 'Counters', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" id="mdi-counter" viewBox="0 0 24 24" fill="currentColor"><path d="M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H11V6H4M20,18V6H18.76C19,6.54 18.95,7.07 18.95,7.13C18.88,7.8 18.41,8.5 18.24,8.75L15.91,11.3L19.23,11.28L19.24,12.5L14.04,12.47L14,11.47C14,11.47 17.05,8.24 17.2,7.95C17.34,7.67 17.91,6 16.5,6C15.27,6.05 15.41,7.3 15.41,7.3L13.87,7.31C13.87,7.31 13.88,6.65 14.25,6H13V18H15.58L15.57,17.14L16.54,17.13C16.54,17.13 17.45,16.97 17.46,16.08C17.5,15.08 16.65,15.08 16.5,15.08C16.37,15.08 15.43,15.13 15.43,15.95H13.91C13.91,15.95 13.95,13.89 16.5,13.89C19.1,13.89 18.96,15.91 18.96,15.91C18.96,15.91 19,17.16 17.85,17.63L18.37,18H20M8.92,16H7.42V10.2L5.62,10.76V9.53L8.76,8.41H8.92V16Z" /></svg>' },
@@ -51,7 +55,7 @@ function terminalApp() {
         activeMenu: null,
 
         // Multi-session & Layout state
-        sessions: [], // Array of { id, port, baudrate, connected, terminal, fitAddon, ws, promptBuffer, promptString }
+        sessions: [], // Array of { id, port, baudrate, connected, terminal, fitAddon, ws, promptBuffer, promptString, terminalBuffer }
         layoutGroups: [], // Array of { id, sessionIds, activeSessionId }
         activeSessionId: null, // Legacy: still used for "global" context (e.g. settings)
 
@@ -118,6 +122,7 @@ function terminalApp() {
             id: null,
             name: '',
             commands: [],
+            commandsText: '', // Text representation for textarea
             stopOnError: true
         },
         runningScript: null, // Currently executing script (id)
@@ -300,6 +305,28 @@ function terminalApp() {
                 id, name, command, interval
             }));
             localStorage.setItem('zfield_repeat_commands', JSON.stringify(toSave));
+        },
+
+        // ============ SHELL SCRIPTS METHODS ============
+
+        initShellScripts() {
+            const saved = localStorage.getItem('zfield_shell_scripts');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    this.shellScripts = parsed;
+                } catch (e) {
+                    console.error('Error loading shell scripts:', e);
+                    this.shellScripts = [];
+                }
+            }
+        },
+
+        saveShellScripts() {
+            const toSave = this.shellScripts.map(({ id, name, commands, stopOnError }) => ({
+                id, name, commands, stopOnError
+            }));
+            localStorage.setItem('zfield_shell_scripts', JSON.stringify(toSave));
         },
 
         // ============ COUNTER METHODS ============
@@ -932,7 +959,9 @@ function terminalApp() {
                             terminal: null,
                             fitAddon: null,
                             ws: null,
-                            promptBuffer: ''
+                            promptBuffer: '',
+                            promptString: '',
+                            terminalBuffer: '' // Store terminal output for prompt detection
                         };
                         this.sessions.push(newSession);
                         // We will need to init terminal UI for these, relying on Alpine's x-for to render them
@@ -1056,6 +1085,33 @@ function terminalApp() {
             this.resizeTerminal();
         },
 
+        // ============ WINDOW DRAGGING ============
+
+        startWindowDrag(e) {
+            // Only allow dragging from header, not from interactive elements
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+                return;
+            }
+            this.isWindowDragging = true;
+            this.windowDragStartX = e.clientX;
+            this.windowDragStartY = e.clientY;
+        },
+
+        handleWindowDrag(e) {
+            if (!this.isWindowDragging) return;
+
+            // Check if we're in an Electron environment
+            if (window.electron && window.electron.ipcRenderer) {
+                const deltaX = e.clientX - this.windowDragStartX;
+                const deltaY = e.clientY - this.windowDragStartY;
+                window.electron.ipcRenderer.send('window-drag', { deltaX, deltaY });
+            }
+            // If not Electron, do nothing (web browsers handle window dragging automatically)
+        },
+
+        stopWindowDrag() {
+            this.isWindowDragging = false;
+        },
 
         // Load app version
         async loadVersion() {
@@ -1214,7 +1270,8 @@ function terminalApp() {
                             fitAddon: null,
                             ws: null,
                             promptBuffer: '',
-                            promptString: ''
+                            promptString: '',
+                            terminalBuffer: '' // Store terminal output for prompt detection
                         });
                     });
 
@@ -1299,6 +1356,14 @@ function terminalApp() {
         },
         get terminal() {
             return this.activeSession ? this.activeSession.terminal : null;
+        },
+        get canRunScript() {
+            // Computed property for Alpine.js reactivity
+            if (this.runningScript !== null) return false;
+            if (!this.activeSessionId) return false;
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session || !session.ws) return false;
+            return session.ws.readyState === WebSocket.OPEN;
         },
         get terminalFitAddon() {
             return this.activeSession ? this.activeSession.fitAddon : null;
@@ -1520,53 +1585,20 @@ function terminalApp() {
 
         // Multi-select functionality
         toggleSelectionMode() {
-            const previous = this.selectionMode;
             this.selectionMode = !this.selectionMode;
-            console.log('[multi-select] toggleSelectionMode', {
-                previous,
-                next: this.selectionMode,
-                selectedCommandIds: this.selectedCommandIds,
-            });
             if (!this.selectionMode) {
                 // Clear selection when exiting mode
                 this.selectedCommandIds = [];
-                console.log('[multi-select] cleared selection because mode turned off');
             }
         },
 
         toggleCommandSelection(cmdId) {
-            console.log('[multi-select] toggleCommandSelection CALLED', {
-                cmdId,
-                selectionMode: this.selectionMode,
-                before: [...this.selectedCommandIds]
-            });
-            const before = [...this.selectedCommandIds];
             const index = this.selectedCommandIds.indexOf(cmdId);
             if (index > -1) {
-                // Remove from selection - create new array for reactivity
-                this.selectedCommandIds = this.selectedCommandIds.filter(id => id !== cmdId);
-                console.log('[multi-select] REMOVED from selection', { cmdId, after: [...this.selectedCommandIds] });
+                this.selectedCommandIds.splice(index, 1);
             } else {
-                // Add to selection - create new array for reactivity
-                this.selectedCommandIds = [...this.selectedCommandIds, cmdId];
-                console.log('[multi-select] ADDED to selection', { cmdId, after: [...this.selectedCommandIds] });
+                this.selectedCommandIds.push(cmdId);
             }
-            console.log('[multi-select] toggleCommandSelection', {
-                cmdId,
-                before,
-                after: this.selectedCommandIds,
-                selectionMode: this.selectionMode,
-            });
-        },
-
-        shouldShowActionBar() {
-            const value = this.selectionMode && this.selectedCommandIds.length > 0;
-            console.log('[multi-select] shouldShowActionBar()', {
-                selectionMode: this.selectionMode,
-                selectedCount: this.selectedCommandIds.length,
-                result: value,
-            });
-            return value;
         },
 
         getVisibleCommands() {
@@ -1617,17 +1649,6 @@ function terminalApp() {
 
         isCommandSelected(cmdId) {
             return this.selectedCommandIds.includes(cmdId);
-        },
-
-        // Window drag handlers (no-op stubs to satisfy Alpine expressions)
-        startWindowDrag(event) {
-            // Intentionally left blank; window dragging not implemented in web mode
-        },
-        handleWindowDrag(event) {
-            // Intentionally left blank; window dragging not implemented in web mode
-        },
-        stopWindowDrag() {
-            // Intentionally left blank; window dragging not implemented in web mode
         },
 
         // Drag & Drop Handlers
@@ -1829,6 +1850,21 @@ function terminalApp() {
                     session.terminal.write(event.data);
                 }
 
+                // Store terminal output for prompt detection
+                if (!session.terminalBuffer) {
+                    session.terminalBuffer = '';
+                }
+                session.terminalBuffer += event.data;
+                // Keep buffer size reasonable (last 5000 chars)
+                if (session.terminalBuffer.length > 5000) {
+                    session.terminalBuffer = session.terminalBuffer.slice(-5000);
+                }
+
+                // Detect prompt string if not already detected
+                if (!session.promptString || session.promptString === '') {
+                    this.detectPromptString(session);
+                }
+
                 // Update counters
                 this.updateCounters(session.id, event.data);
 
@@ -1992,7 +2028,8 @@ function terminalApp() {
                             fitAddon: null,
                             ws: null,
                             promptBuffer: '',
-                            promptString: ''
+                            promptString: '',
+                            terminalBuffer: '' // Store terminal output for prompt detection
                         };
 
                         this.sessions.push(session);
@@ -2219,6 +2256,413 @@ function terminalApp() {
                     rc.runningSessions = [];
                 }
             });
+        },
+
+        // ============ SHELL SCRIPTS CRUD METHODS ============
+
+        openScriptModal(script = null, isEdit = false) {
+            if (isEdit && script) {
+                // Editing an existing script
+                this.scriptModalData = {
+                    id: script.id,
+                    name: script.name || '',
+                    commands: [...(script.commands || [])],
+                    commandsText: (script.commands || []).join('\n'),
+                    stopOnError: script.stopOnError !== undefined ? script.stopOnError : true
+                };
+            } else {
+                // New script
+                this.scriptModalData = {
+                    id: null,
+                    name: '',
+                    commands: [],
+                    commandsText: '',
+                    stopOnError: true
+                };
+            }
+            this.activeView = 'scripts-create';
+        },
+
+        addShellScript() {
+            console.log('addShellScript called', this.scriptModalData);
+            // Get values from Alpine.js proxy - access properties directly
+            const name = (this.scriptModalData && this.scriptModalData.name) ? String(this.scriptModalData.name).trim() : '';
+            const commandsText = (this.scriptModalData && this.scriptModalData.commandsText) ? String(this.scriptModalData.commandsText) : '';
+            const stopOnError = (this.scriptModalData && this.scriptModalData.stopOnError !== undefined) ? this.scriptModalData.stopOnError : true;
+            const id = (this.scriptModalData && this.scriptModalData.id) ? this.scriptModalData.id : null;
+
+            console.log('Extracted values:', { name, commandsText, stopOnError, id, rawData: this.scriptModalData });
+
+            // Validate name
+            if (!name || name.length === 0) {
+                console.error('Validation failed: name is empty');
+                alert('Please enter a script name');
+                this.showStatus('Script name is required', 'error');
+                return;
+            }
+
+            // Parse commands from textarea
+            const commands = commandsText
+                .split('\n')
+                .map(cmd => cmd.trim())
+                .filter(cmd => cmd.length > 0 && !cmd.startsWith('#') && !cmd.toLowerCase().startsWith('rem '));
+
+            console.log('Parsed commands:', commands);
+
+            if (commands.length === 0) {
+                this.showStatus('At least one command is required', 'error');
+                return;
+            }
+
+            if (id) {
+                // Update existing
+                const index = this.shellScripts.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    this.shellScripts[index] = {
+                        id: id,
+                        name: name.trim(),
+                        commands: commands,
+                        stopOnError: stopOnError
+                    };
+                    this.showStatus('Script updated', 'success');
+                }
+            } else {
+                // Create new
+                const newScript = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    name: name.trim(),
+                    commands: commands,
+                    stopOnError: stopOnError
+                };
+                this.shellScripts.push(newScript);
+                this.showStatus('Script added', 'success');
+            }
+
+            this.saveShellScripts();
+            this.activeView = 'scripts';
+            if (this.terminal) this.terminal.focus();
+        },
+
+        removeShellScript(id) {
+            if (this.runningScript === id) {
+                this.showStatus('Cannot delete script while it is running', 'error');
+                return;
+            }
+
+            const index = this.shellScripts.findIndex(s => s.id === id);
+            if (index !== -1) {
+                this.shellScripts.splice(index, 1);
+                this.saveShellScripts();
+                this.showStatus('Script deleted', 'success');
+            }
+            if (this.terminal) this.terminal.focus();
+        },
+
+        importScriptFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.txt')) {
+                this.showStatus('Please select a .txt file', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    // Split by newlines and filter empty lines
+                    const commands = content
+                        .split(/\r?\n/)
+                        .map(cmd => cmd.trim())
+                        .filter(cmd => cmd.length > 0 && !cmd.startsWith('#') && !cmd.toLowerCase().startsWith('rem '));
+
+                    this.scriptModalData.commandsText = commands.join('\n');
+                    this.scriptModalData.commands = commands;
+                    this.showStatus(`Imported ${commands.length} command(s)`, 'success');
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    this.showStatus('Error reading file', 'error');
+                }
+            };
+            reader.onerror = () => {
+                this.showStatus('Error reading file', 'error');
+            };
+            reader.readAsText(file);
+
+            // Reset file input
+            event.target.value = '';
+        },
+
+        exportScript(script) {
+            if (!script || !script.commands || script.commands.length === 0) {
+                this.showStatus('Script has no commands to export', 'error');
+                return;
+            }
+
+            const content = script.commands.join('\n');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${script.name || 'script'}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.showStatus('Script exported', 'success');
+        },
+
+        // Helper to check if script execution is allowed
+        canExecuteScript() {
+            // Don't log every time - only log when checking for a specific script
+            if (this.runningScript !== null) {
+                return false;
+            }
+            if (!this.activeSessionId) {
+                return false;
+            }
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session) {
+                return false;
+            }
+            if (!session.ws) {
+                return false;
+            }
+            const readyState = session.ws.readyState;
+            if (readyState !== WebSocket.OPEN) {
+                // Log this once to help debug
+                console.log('canExecuteScript: false - websocket state:', readyState, 'OPEN=', WebSocket.OPEN);
+                return false;
+            }
+            return true;
+        },
+
+        // ============ PROMPT DETECTION & SCRIPT EXECUTION ============
+
+        detectPromptString(session) {
+            if (!session || !session.terminalBuffer) return;
+
+            const buffer = session.terminalBuffer;
+            // Look for common prompt patterns at end of lines
+            // Patterns: "uart:~$", ">", "#", "$", "zephyr:~$", etc.
+            const promptPatterns = [
+                /uart:~\$[\s]*$/m,
+                /zephyr:~\$[\s]*$/m,
+                /\$[\s]*$/m,
+                />[\s]*$/m,
+                /#[\s]*$/m,
+                /[\w-]+:~\$[\s]*$/m, // Generic "name:~$" pattern
+            ];
+
+            // Check last few lines for prompt patterns
+            const lines = buffer.split('\n');
+            const lastLines = lines.slice(-5); // Check last 5 lines
+
+            for (const line of lastLines) {
+                for (const pattern of promptPatterns) {
+                    const match = line.match(pattern);
+                    if (match) {
+                        // Extract the prompt (remove trailing whitespace)
+                        const prompt = match[0].trim();
+                        if (prompt.length > 0) {
+                            session.promptString = prompt;
+                            console.log(`Detected prompt: "${prompt}" for session ${session.port}`);
+                            return;
+                        }
+                    }
+                }
+            }
+        },
+
+        async waitForPrompt(session, timeout = 10000) {
+            if (!session || !session.ws || session.ws.readyState !== WebSocket.OPEN) {
+                throw new Error('WebSocket not connected');
+            }
+
+            // Ensure prompt string is detected
+            if (!session.promptString || session.promptString === '') {
+                this.detectPromptString(session);
+                // If still not detected, wait a bit and try again
+                if (!session.promptString || session.promptString === '') {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.detectPromptString(session);
+                }
+            }
+
+            if (!session.promptString || session.promptString === '') {
+                console.warn('Prompt string not detected, using fallback detection');
+                // Fallback: wait a fixed time
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return;
+            }
+
+            const startTime = Date.now();
+            const prompt = session.promptString;
+
+            return new Promise((resolve, reject) => {
+                const checkInterval = setInterval(() => {
+                    if (!session.terminalBuffer) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Terminal buffer not available'));
+                        return;
+                    }
+
+                    // Check if prompt appears at the end of buffer
+                    const buffer = session.terminalBuffer;
+                    const lastPart = buffer.slice(-200); // Check last 200 chars
+
+                    if (lastPart.includes(prompt)) {
+                        clearInterval(checkInterval);
+                        resolve();
+                        return;
+                    }
+
+                    // Check timeout
+                    if (Date.now() - startTime > timeout) {
+                        clearInterval(checkInterval);
+                        console.warn(`Timeout waiting for prompt "${prompt}"`);
+                        // Resolve anyway to continue execution
+                        resolve();
+                    }
+                }, 100); // Check every 100ms
+            });
+        },
+
+        parseRetvalResponse(buffer) {
+            if (!buffer) return null;
+
+            // Look for numeric return code after "retval" command
+            // Common formats: "0", "1", "retval: 0", "Return code: 1", etc.
+            const patterns = [
+                /retval[\s:]*(\d+)/i,
+                /return[\s]*code[\s:]*(\d+)/i,
+                /^[\s]*(\d+)[\s]*$/m, // Just a number on a line
+            ];
+
+            // Check last 500 chars for retval output
+            const lastPart = buffer.slice(-500);
+
+            for (const pattern of patterns) {
+                const match = lastPart.match(pattern);
+                if (match) {
+                    const code = parseInt(match[1], 10);
+                    if (!isNaN(code)) {
+                        return code;
+                    }
+                }
+            }
+
+            // Fallback: look for any standalone number in last few lines
+            const lines = lastPart.split('\n').slice(-5);
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (/^\d+$/.test(trimmed)) {
+                    const code = parseInt(trimmed, 10);
+                    if (!isNaN(code)) {
+                        return code;
+                    }
+                }
+            }
+
+            return null;
+        },
+
+        async executeScript(script) {
+            const sessionId = this.activeSessionId;
+            if (!sessionId) {
+                this.showStatus('No active session', 'error');
+                return;
+            }
+
+            const session = this.sessions.find(s => s.id === sessionId);
+            if (!session) {
+                this.showStatus('Session not found', 'error');
+                return;
+            }
+
+            if (!session.ws || session.ws.readyState !== WebSocket.OPEN) {
+                this.showStatus('WebSocket not connected', 'error');
+                return;
+            }
+
+            if (this.runningScript !== null) {
+                this.showStatus('Another script is already running', 'error');
+                return;
+            }
+
+            if (!script || !script.commands || script.commands.length === 0) {
+                this.showStatus('Script has no commands', 'error');
+                return;
+            }
+
+            // Initialize execution state
+            this.runningScript = script.id;
+            this.scriptExecutionState[script.id] = {
+                currentCommand: 0,
+                totalCommands: script.commands.length,
+                status: 'running'
+            };
+
+            try {
+                // Ensure prompt string is detected
+                if (!session.promptString || session.promptString === '') {
+                    this.showStatus('Detecting prompt...', 'info');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.detectPromptString(session);
+                }
+
+                // Execute commands sequentially
+                for (let i = 0; i < script.commands.length; i++) {
+                    const command = script.commands[i].trim();
+                    if (!command) continue;
+
+                    // Check if still connected
+                    if (!session.ws || session.ws.readyState !== WebSocket.OPEN) {
+                        throw new Error('WebSocket disconnected');
+                    }
+
+                    // Update execution state
+                    this.scriptExecutionState[script.id].currentCommand = i + 1;
+
+                    // Send command
+                    session.ws.send(command + '\n');
+
+                    // Wait for command to complete (prompt appears)
+                    await this.waitForPrompt(session, 10000);
+
+                    // Send retval command to check return code
+                    session.ws.send('retval\n');
+
+                    // Wait for retval command to complete
+                    await this.waitForPrompt(session, 5000);
+
+                    // Parse retval response
+                    const returnCode = this.parseRetvalResponse(session.terminalBuffer);
+
+                    if (returnCode !== null && returnCode !== 0) {
+                        // Non-zero return code
+                        if (script.stopOnError) {
+                            this.showStatus(`Script stopped: Command "${command}" returned ${returnCode}`, 'error');
+                            break;
+                        } else {
+                            this.showStatus(`Warning: Command "${command}" returned ${returnCode}`, 'warning');
+                        }
+                    }
+                }
+
+                // Script completed successfully
+                this.showStatus(`Script "${script.name}" completed`, 'success');
+            } catch (error) {
+                console.error('Script execution error:', error);
+                this.showStatus(`Script execution error: ${error.message}`, 'error');
+            } finally {
+                // Cleanup
+                this.runningScript = null;
+                if (this.scriptExecutionState[script.id]) {
+                    this.scriptExecutionState[script.id].status = 'completed';
+                }
+            }
         },
 
         // Show status message
