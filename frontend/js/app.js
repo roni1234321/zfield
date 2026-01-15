@@ -2819,8 +2819,8 @@ function terminalApp() {
                     // Parse retval response - only look at content that came after we sent retval
                     const returnCode = this.parseRetvalResponse(session.terminalBuffer, bufferBeforeRetval);
 
-                    if (returnCode !== null && returnCode !== 0) {
-                        // Non-zero return code
+                    if (returnCode !== null && returnCode < 0) {
+                        // Negative return code indicates error
                         allCommandsSucceeded = false;
                         if (script.stopOnError) {
                             this.showStatus(`Script stopped: Command "${command}" returned ${returnCode}`, 'error');
