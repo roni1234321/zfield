@@ -51,7 +51,7 @@ function terminalApp() {
         activeMenu: null,
 
         // Multi-session & Layout state
-        sessions: [], // Array of { id, port, baudrate, connected, terminal, fitAddon, ws, promptBuffer }
+        sessions: [], // Array of { id, port, baudrate, connected, terminal, fitAddon, ws, promptBuffer, promptString }
         layoutGroups: [], // Array of { id, sessionIds, activeSessionId }
         activeSessionId: null, // Legacy: still used for "global" context (e.g. settings)
 
@@ -86,6 +86,8 @@ function terminalApp() {
         enableCommandSelectionModal: true, // Setting to enable/disable the modal
         selectedCommandsForDeepScan: [], // Commands selected for deep scan
         topLevelCommands: [], // Store top-level commands after initial scan
+        selectionMode: false, // Multi-select mode for bulk operations
+        selectedCommandIds: [], // IDs of selected commands for bulk delete
 
         // Modal State (Unified for Scanned & Custom)
         showCustomCommandModal: false,
@@ -109,6 +111,17 @@ function terminalApp() {
             command: '',
             interval: 1.0
         },
+
+        // Shell Scripts State
+        shellScripts: [],
+        scriptModalData: {
+            id: null,
+            name: '',
+            commands: [],
+            stopOnError: true
+        },
+        runningScript: null, // Currently executing script (id)
+        scriptExecutionState: {}, // Track execution state per script
 
         // Counter Feature State
         counters: [],
@@ -201,6 +214,9 @@ function terminalApp() {
 
             // Load repeat commands
             this.initRepeatCommands();
+
+            // Load shell scripts
+            this.initShellScripts();
 
             // Load saved sidebar width
             const savedWidth = localStorage.getItem('zfield_sidebar_width');
@@ -1197,7 +1213,8 @@ function terminalApp() {
                             terminal: null,
                             fitAddon: null,
                             ws: null,
-                            promptBuffer: ''
+                            promptBuffer: '',
+                            promptString: ''
                         });
                     });
 
@@ -1499,6 +1516,118 @@ function terminalApp() {
                     this.selectedCommand = null;
                 }
             }
+        },
+
+        // Multi-select functionality
+        toggleSelectionMode() {
+            const previous = this.selectionMode;
+            this.selectionMode = !this.selectionMode;
+            console.log('[multi-select] toggleSelectionMode', {
+                previous,
+                next: this.selectionMode,
+                selectedCommandIds: this.selectedCommandIds,
+            });
+            if (!this.selectionMode) {
+                // Clear selection when exiting mode
+                this.selectedCommandIds = [];
+                console.log('[multi-select] cleared selection because mode turned off');
+            }
+        },
+
+        toggleCommandSelection(cmdId) {
+            console.log('[multi-select] toggleCommandSelection CALLED', {
+                cmdId,
+                selectionMode: this.selectionMode,
+                before: [...this.selectedCommandIds]
+            });
+            const before = [...this.selectedCommandIds];
+            const index = this.selectedCommandIds.indexOf(cmdId);
+            if (index > -1) {
+                // Remove from selection - create new array for reactivity
+                this.selectedCommandIds = this.selectedCommandIds.filter(id => id !== cmdId);
+                console.log('[multi-select] REMOVED from selection', { cmdId, after: [...this.selectedCommandIds] });
+            } else {
+                // Add to selection - create new array for reactivity
+                this.selectedCommandIds = [...this.selectedCommandIds, cmdId];
+                console.log('[multi-select] ADDED to selection', { cmdId, after: [...this.selectedCommandIds] });
+            }
+            console.log('[multi-select] toggleCommandSelection', {
+                cmdId,
+                before,
+                after: this.selectedCommandIds,
+                selectionMode: this.selectionMode,
+            });
+        },
+
+        shouldShowActionBar() {
+            const value = this.selectionMode && this.selectedCommandIds.length > 0;
+            console.log('[multi-select] shouldShowActionBar()', {
+                selectionMode: this.selectionMode,
+                selectedCount: this.selectedCommandIds.length,
+                result: value,
+            });
+            return value;
+        },
+
+        getVisibleCommands() {
+            // Get all visible/filtered commands
+            return this.commands.filter(c =>
+                !this.searchCommands ||
+                (c.fullName || c.name || '').toLowerCase().includes(this.searchCommands.toLowerCase()) ||
+                (c.description && c.description.toLowerCase().includes(this.searchCommands.toLowerCase()))
+            );
+        },
+
+        selectAllCommandsForDelete() {
+            const visibleCommands = this.getVisibleCommands();
+            this.selectedCommandIds = visibleCommands.map(c => c.id || (c.fullName || c.name)).filter(id => id);
+        },
+
+        deselectAllCommandsForDelete() {
+            this.selectedCommandIds = [];
+        },
+
+        getSelectedCommandsCount() {
+            return this.selectedCommandIds.length;
+        },
+
+        deleteSelectedCommands() {
+            const count = this.selectedCommandIds.length;
+            if (count === 0) return;
+
+            if (confirm(`Are you sure you want to delete ${count} command(s)?`)) {
+                // Filter out selected commands
+                this.commands = this.commands.filter(c => {
+                    const cmdId = c.id || (c.fullName || c.name);
+                    return !this.selectedCommandIds.includes(cmdId);
+                });
+
+                // Clear selectedCommand if it was deleted
+                if (this.selectedCommand && this.selectedCommandIds.includes(this.selectedCommand.id || (this.selectedCommand.fullName || this.selectedCommand.name))) {
+                    this.selectedCommand = null;
+                }
+
+                // Save and clear selection
+                this.saveCachedCommands(this.commands);
+                this.selectedCommandIds = [];
+                this.selectionMode = false;
+                this.showStatus(`${count} command(s) deleted`, 'success');
+            }
+        },
+
+        isCommandSelected(cmdId) {
+            return this.selectedCommandIds.includes(cmdId);
+        },
+
+        // Window drag handlers (no-op stubs to satisfy Alpine expressions)
+        startWindowDrag(event) {
+            // Intentionally left blank; window dragging not implemented in web mode
+        },
+        handleWindowDrag(event) {
+            // Intentionally left blank; window dragging not implemented in web mode
+        },
+        stopWindowDrag() {
+            // Intentionally left blank; window dragging not implemented in web mode
         },
 
         // Drag & Drop Handlers
@@ -1862,7 +1991,8 @@ function terminalApp() {
                             terminal: null,
                             fitAddon: null,
                             ws: null,
-                            promptBuffer: ''
+                            promptBuffer: '',
+                            promptString: ''
                         };
 
                         this.sessions.push(session);
