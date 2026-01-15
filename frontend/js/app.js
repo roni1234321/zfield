@@ -1379,12 +1379,26 @@ function terminalApp() {
             return this.activeSession ? this.activeSession.terminal : null;
         },
         get canRunScript() {
-            // Computed property for Alpine.js reactivity
-            if (this.runningScript !== null) return false;
-            if (!this.activeSessionId) return false;
+            // Use the reactive flag
+            return this.canExecuteScripts;
+        },
+
+        updateCanExecuteScripts() {
+            // Update the reactive flag based on current state
+            if (this.runningScript !== null) {
+                this.canExecuteScripts = false;
+                return;
+            }
+            if (!this.activeSessionId) {
+                this.canExecuteScripts = false;
+                return;
+            }
             const session = this.sessions.find(s => s.id === this.activeSessionId);
-            if (!session || !session.ws) return false;
-            return session.ws.readyState === WebSocket.OPEN;
+            if (!session) {
+                this.canExecuteScripts = false;
+                return;
+            }
+            this.canExecuteScripts = session.connected === true && session.ws && session.ws.readyState === WebSocket.OPEN;
         },
         get terminalFitAddon() {
             return this.activeSession ? this.activeSession.fitAddon : null;
@@ -1402,6 +1416,7 @@ function terminalApp() {
         // Switch active session
         switchSession(sessionId, groupId = null) {
             console.log(`Switching to session ${sessionId} in group ${groupId}`);
+            this.updateCanExecuteScripts(); // Update script execution capability
 
             // If groupId is provided, update that group's active session
             if (groupId) {
@@ -1421,6 +1436,7 @@ function terminalApp() {
             }
 
             this.activeSessionId = sessionId;
+            this.updateCanExecuteScripts(); // Update script execution capability
             const session = this.activeSession;
             if (session) {
                 this.currentPort = session.port;
@@ -1847,6 +1863,8 @@ function terminalApp() {
 
             session.ws.onopen = () => {
                 console.log(`WebSocket connected for ${session.port}`);
+                session.connected = true; // Update reactive property
+                this.updateCanExecuteScripts(); // Update reactive flag
                 this.showToast(`Connected to ${session.port}`, 'success');
                 // Removed automatic \r on connect to avoid prompt flooding on refresh
             };
@@ -1895,11 +1913,15 @@ function terminalApp() {
 
             session.ws.onerror = (error) => {
                 console.error(`WebSocket error for ${session.port}:`, error);
+                session.connected = false; // Update reactive property
+                this.updateCanExecuteScripts(); // Update reactive flag
                 // WebSocket error occurred
             };
 
             session.ws.onclose = () => {
                 console.log(`WebSocket disconnected for ${session.port}`);
+                session.connected = false; // Update reactive property
+                this.updateCanExecuteScripts(); // Update reactive flag
                 this.showToast(`Disconnected from ${session.port}`, 'warning');
             };
         },
@@ -2070,6 +2092,7 @@ function terminalApp() {
                         }
 
                         this.activeSessionId = sessionId;
+                        this.updateCanExecuteScripts(); // Update script execution capability
                     }
                     this.connected = true;
                     this.currentPort = portToConnect;
@@ -2464,23 +2487,35 @@ function terminalApp() {
         detectPromptString(session) {
             if (!session || !session.terminalBuffer) return;
 
-            const buffer = session.terminalBuffer;
+            let buffer = session.terminalBuffer;
+
+            // Remove ANSI escape codes that might interfere with detection
+            buffer = buffer.replace(/\x1b\[[0-9;]*m/g, ''); // Remove color codes
+            buffer = buffer.replace(/\x1b\[[0-9]*[A-Za-z]/g, ''); // Remove other ANSI codes
+            buffer = buffer.replace(/\r/g, ''); // Normalize line endings
+
             // Look for common prompt patterns at end of lines
             // Patterns: "uart:~$", ">", "#", "$", "zephyr:~$", etc.
             const promptPatterns = [
                 /uart:~\$[\s]*$/m,
                 /zephyr:~\$[\s]*$/m,
+                /[\w-]+:~\$[\s]*$/m, // Generic "name:~$" pattern (check before generic patterns)
                 /\$[\s]*$/m,
                 />[\s]*$/m,
                 /#[\s]*$/m,
-                /[\w-]+:~\$[\s]*$/m, // Generic "name:~$" pattern
             ];
 
-            // Check last few lines for prompt patterns
+            // Check last few lines for prompt patterns (from most recent to oldest)
             const lines = buffer.split('\n');
-            const lastLines = lines.slice(-5); // Check last 5 lines
+            const lastLines = lines.slice(-15); // Check last 15 lines for better detection
 
-            for (const line of lastLines) {
+            // Check lines from most recent (end) to oldest (beginning)
+            // This ensures we get the latest prompt, not an old one
+            for (let i = lastLines.length - 1; i >= 0; i--) {
+                const line = lastLines[i].trim();
+                if (!line) continue; // Skip empty lines
+
+                // Check patterns in order of specificity (most specific first)
                 for (const pattern of promptPatterns) {
                     const match = line.match(pattern);
                     if (match) {
@@ -2488,11 +2523,87 @@ function terminalApp() {
                         const prompt = match[0].trim();
                         if (prompt.length > 0) {
                             session.promptString = prompt;
-                            console.log(`Detected prompt: "${prompt}" for session ${session.port}`);
+                            console.log(`Detected prompt: "${prompt}" for session ${session.port} (from line ${i}, raw: "${line}")`);
                             return;
                         }
                     }
                 }
+            }
+
+            // Also check the very end of the buffer (might be incomplete line)
+            const lastPart = buffer.slice(-100).trim();
+            for (const pattern of promptPatterns) {
+                const match = lastPart.match(pattern);
+                if (match) {
+                    const prompt = match[0].trim();
+                    if (prompt.length > 0) {
+                        session.promptString = prompt;
+                        console.log(`Detected prompt from buffer end: "${prompt}"`);
+                        return;
+                    }
+                }
+            }
+        },
+
+        async detectPromptStringActive(session) {
+            // Actively detect prompt by sending newline and capturing response
+            if (!session || !session.ws || session.ws.readyState !== WebSocket.OPEN) {
+                return false;
+            }
+
+            console.log('Actively detecting prompt for session', session.port);
+            this.showStatus('Detecting prompt...', 'info');
+
+            // Store initial buffer state
+            const initialBuffer = session.terminalBuffer || '';
+            const initialBufferLength = initialBuffer.length;
+
+            // Send newline to trigger prompt
+            session.ws.send('\n');
+
+            // Wait for response with multiple attempts
+            let detected = false;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                // Wait for response (increasing wait time)
+                await new Promise(resolve => setTimeout(resolve, 300 + (attempt * 200)));
+
+                // Check if buffer has new content
+                const currentBuffer = session.terminalBuffer || '';
+                if (currentBuffer.length > initialBufferLength) {
+                    // New content received, try to detect prompt
+                    this.detectPromptString(session);
+
+                    if (session.promptString && session.promptString !== '') {
+                        detected = true;
+                        break;
+                    }
+                }
+            }
+
+            // If still not detected, try one more time with the full buffer
+            if (!detected) {
+                console.log('Final attempt: checking full buffer');
+                console.log('Buffer length:', session.terminalBuffer?.length || 0);
+                console.log('Last 200 chars:', session.terminalBuffer?.slice(-200) || '');
+                this.detectPromptString(session);
+
+                if (session.promptString && session.promptString !== '') {
+                    detected = true;
+                }
+            }
+
+            if (detected && session.promptString && session.promptString !== '') {
+                console.log(`Successfully detected prompt: "${session.promptString}"`);
+                this.showStatus(`Prompt detected: ${session.promptString}`, 'success');
+                return true;
+            } else {
+                console.warn('Could not detect prompt after active detection');
+                console.warn('Buffer content (last 500 chars):', session.terminalBuffer?.slice(-500) || 'No buffer');
+                // Set a fallback prompt if detection fails
+                session.promptString = 'uart:~$'; // Fallback to common Zephyr prompt
+                console.log('Using fallback prompt: uart:~$');
+                this.showStatus('Using fallback prompt: uart:~$', 'warning');
+                return false;
             }
         },
 
@@ -2619,18 +2730,19 @@ function terminalApp() {
 
             // Initialize execution state
             this.runningScript = script.id;
+            let allCommandsSucceeded = true; // Track if all commands return 0
             this.scriptExecutionState[script.id] = {
                 currentCommand: 0,
                 totalCommands: script.commands.length,
-                status: 'running'
+                status: 'running',
+                lastResult: null // Will be 'success' or 'error'
             };
+            this.updateCanExecuteScripts(); // Update flag
 
             try {
-                // Ensure prompt string is detected
+                // Ensure prompt string is detected - use active detection if not set
                 if (!session.promptString || session.promptString === '') {
-                    this.showStatus('Detecting prompt...', 'info');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    this.detectPromptString(session);
+                    await this.detectPromptStringActive(session);
                 }
 
                 // Execute commands sequentially
@@ -2663,6 +2775,7 @@ function terminalApp() {
 
                     if (returnCode !== null && returnCode !== 0) {
                         // Non-zero return code
+                        allCommandsSucceeded = false;
                         if (script.stopOnError) {
                             this.showStatus(`Script stopped: Command "${command}" returned ${returnCode}`, 'error');
                             break;
@@ -2672,17 +2785,31 @@ function terminalApp() {
                     }
                 }
 
-                // Script completed successfully
-                this.showStatus(`Script "${script.name}" completed`, 'success');
+                // Update script execution result
+                if (this.scriptExecutionState[script.id]) {
+                    this.scriptExecutionState[script.id].lastResult = allCommandsSucceeded ? 'success' : 'error';
+                }
+
+                // Script completed
+                if (allCommandsSucceeded) {
+                    this.showStatus(`Script "${script.name}" completed successfully`, 'success');
+                } else {
+                    this.showStatus(`Script "${script.name}" completed with errors`, 'warning');
+                }
             } catch (error) {
                 console.error('Script execution error:', error);
                 this.showStatus(`Script execution error: ${error.message}`, 'error');
+                // Mark as error on exception
+                if (this.scriptExecutionState[script.id]) {
+                    this.scriptExecutionState[script.id].lastResult = 'error';
+                }
             } finally {
                 // Cleanup
                 this.runningScript = null;
                 if (this.scriptExecutionState[script.id]) {
                     this.scriptExecutionState[script.id].status = 'completed';
                 }
+                this.updateCanExecuteScripts(); // Update flag
             }
         },
 

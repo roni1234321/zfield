@@ -1044,15 +1044,30 @@
                                         :class="runningScript === script.id ? 'border-indigo-500 shadow-indigo-500/20' : 'border-gray-200 dark:border-slate-700'">
                                         <div class="flex items-start justify-between mb-2">
                                             <div class="flex-1 min-w-0">
-                                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1"
-                                                    x-text="script.name || 'Unnamed Script'"></div>
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100"
+                                                        x-text="script.name || 'Unnamed Script'"></div>
+                                                    <!-- Success indicator -->
+                                                    <span
+                                                        x-show="scriptExecutionState[script.id]?.lastResult === 'success' && runningScript !== script.id"
+                                                        class="text-green-600 dark:text-green-400"
+                                                        title="Last execution: All commands succeeded">
+                                                        <span class="codicon codicon-run-coverage"
+                                                            style="font-size: 16px;"></span>
+                                                    </span>
+                                                    <!-- Error indicator -->
+                                                    <span
+                                                        x-show="scriptExecutionState[script.id]?.lastResult === 'error' && runningScript !== script.id"
+                                                        class="text-rose-600 dark:text-rose-400"
+                                                        title="Last execution: Some commands failed">
+                                                        <span class="codicon codicon-run-errors"
+                                                            style="font-size: 16px;"></span>
+                                                    </span>
+                                                </div>
                                                 <div class="flex items-center gap-2 flex-wrap">
                                                     <span
                                                         class="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 text-xs rounded"
                                                         x-text="script.commands.length + ' command' + (script.commands.length !== 1 ? 's' : '')"></span>
-                                                    <span x-show="script.stopOnError"
-                                                        class="px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-xs rounded">Stop
-                                                        on Error</span>
                                                     <span x-show="runningScript === script.id"
                                                         class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs rounded flex items-center gap-1">
                                                         <svg class="animate-spin h-3 w-3" fill="none"
