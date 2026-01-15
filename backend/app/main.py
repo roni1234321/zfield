@@ -8,6 +8,7 @@ import sys
 
 from app.api import routes
 from app.api.websocket import websocket_endpoint
+from app.api.port_websocket import port_websocket_endpoint, stop_port_monitor
 
 from app.version import VERSION
 
@@ -16,11 +17,17 @@ app = FastAPI(title="Zephyr Device Manager", version=VERSION)
 # Include API routes
 app.include_router(routes.router, prefix="/api")
 
-# WebSocket endpoint
+# WebSocket endpoint for serial communication
 @app.websocket("/ws")
 async def websocket(websocket: WebSocket):
     """WebSocket endpoint for serial communication."""
     await websocket_endpoint(websocket)
+
+# WebSocket endpoint for port change notifications
+@app.websocket("/ws/ports")
+async def port_websocket(websocket: WebSocket):
+    """WebSocket endpoint for port change notifications."""
+    await port_websocket_endpoint(websocket)
 
 # Determine frontend path (handle PyInstaller bundled app)
 if getattr(sys, 'frozen', False):

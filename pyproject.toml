@@ -17,11 +17,15 @@ dependencies = [
 [project.optional-dependencies]
 windows = [
     "pywinstyles",  # For native Windows Mica/Acrylic glass effect
+    "pywin32>=305",  # For Windows device notifications
+    "WMI>=1.5.1",  # Alternative Windows device monitoring
 ]
 linux = [
     "pywebview[qt]>=4.0",
     "PyQt6>=6.4.0",  # Compatible with Python 3.10+
     "PyQt6-WebEngine>=6.4.0",  # Compatible with Python 3.10+
+    "pyudev>=0.24.0",  # For Linux udev device monitoring
+    "inotify>=0.2.10",  # Fallback Linux file system monitoring
 ]
 dev = [
     "pytest",

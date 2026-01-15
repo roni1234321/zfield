@@ -17,6 +17,7 @@ function terminalApp() {
         omitSent: true, // Whether to omit transmitted data from logs
         availablePorts: [],
         loadingPorts: false,
+        portMonitorWs: null,
         statusMessage: '',
         statusMessageType: 'info',
         connecting: false,
@@ -191,6 +192,9 @@ function terminalApp() {
 
             // Load available ports
             await this.loadPorts();
+
+            // Start port monitoring WebSocket
+            this.startPortMonitoring();
 
             // Check connection status
             await this.checkStatus();
@@ -1071,17 +1075,90 @@ function terminalApp() {
             try {
                 const response = await fetch('/api/ports');
                 const data = await response.json();
-                this.availablePorts = data.ports || [];
-
-                // If no port selected and ports available, select first one
-                if (!this.selectedPort && this.availablePorts.length > 0) {
-                    this.selectedPort = this.availablePorts[0].device;
-                }
+                this.updatePortsList(data.ports || []);
             } catch (error) {
                 console.error('Error loading ports:', error);
                 this.showStatus('Error loading ports: ' + error.message, 'error');
             } finally {
                 this.loadingPorts = false;
+            }
+        },
+
+        // Update ports list (called by loadPorts and port monitor)
+        updatePortsList(ports) {
+            const previousPort = this.selectedPort;
+            this.availablePorts = ports;
+
+            // If no port selected and ports available, select first one
+            if (!this.selectedPort && this.availablePorts.length > 0) {
+                this.selectedPort = this.availablePorts[0].device;
+            } else if (this.selectedPort) {
+                // Check if previously selected port still exists
+                const portExists = this.availablePorts.some(p => p.device === this.selectedPort);
+                if (!portExists) {
+                    // Port was removed, try to select first available or clear selection
+                    if (this.availablePorts.length > 0) {
+                        this.selectedPort = this.availablePorts[0].device;
+                    } else {
+                        this.selectedPort = '';
+                    }
+                }
+            }
+        },
+
+        // Start port monitoring via WebSocket
+        startPortMonitoring() {
+            // Close existing connection if any
+            if (this.portMonitorWs) {
+                this.portMonitorWs.close();
+                this.portMonitorWs = null;
+            }
+
+            // Determine WebSocket URL
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws/ports`;
+
+            try {
+                this.portMonitorWs = new WebSocket(wsUrl);
+
+                this.portMonitorWs.onopen = () => {
+                    console.log('Port monitoring WebSocket connected');
+                };
+
+                this.portMonitorWs.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('Port monitor message received:', data.type, data.ports?.length || 0, 'ports');
+                        if (data.type === 'ports_changed') {
+                            console.log('Ports changed, updating list:', data.ports);
+                            this.updatePortsList(data.ports);
+                        } else if (data.type === 'keepalive') {
+                            // Keepalive message, no action needed
+                            console.log('Port monitor keepalive received');
+                        }
+                    } catch (error) {
+                        console.error('Error parsing port monitor message:', error, event.data);
+                    }
+                };
+
+                this.portMonitorWs.onerror = (error) => {
+                    console.error('Port monitoring WebSocket error:', error);
+                };
+
+                this.portMonitorWs.onclose = (event) => {
+                    console.log('Port monitoring WebSocket closed, code:', event.code, 'reason:', event.reason);
+                    this.portMonitorWs = null;
+                    // Reconnect after a delay
+                    setTimeout(() => {
+                        if (!this.portMonitorWs) {
+                            console.log('Reconnecting port monitoring WebSocket...');
+                            this.startPortMonitoring();
+                        }
+                    }, 3000);
+                };
+            } catch (error) {
+                console.error('Error creating port monitoring WebSocket:', error);
             }
         },
 
