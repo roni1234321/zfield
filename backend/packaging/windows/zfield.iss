@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.0 or later: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "ZField"
-#define MyAppVersion "0.2.3"
+#define MyAppVersion "0.2.4"
 #define MyAppPublisher "Your Organization"
 #define MyAppURL "https://github.com/roni1234321/zfield"
 #define MyAppExeName "zfield.exe"
