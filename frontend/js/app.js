@@ -1639,20 +1639,43 @@ function terminalApp() {
 
         // Multi-select functionality
         toggleSelectionMode() {
+            const previous = this.selectionMode;
             this.selectionMode = !this.selectionMode;
+            console.log('[multi-select] toggleSelectionMode', {
+                previous,
+                next: this.selectionMode,
+                selectedCommandIds: this.selectedCommandIds,
+            });
             if (!this.selectionMode) {
                 // Clear selection when exiting mode
                 this.selectedCommandIds = [];
+                console.log('[multi-select] cleared selection because mode turned off');
             }
         },
 
         toggleCommandSelection(cmdId) {
+            console.log('[multi-select] toggleCommandSelection CALLED', {
+                cmdId,
+                selectionMode: this.selectionMode,
+                before: [...this.selectedCommandIds]
+            });
+            const before = [...this.selectedCommandIds];
             const index = this.selectedCommandIds.indexOf(cmdId);
             if (index > -1) {
-                this.selectedCommandIds.splice(index, 1);
+                // Remove from selection - create new array for reactivity
+                this.selectedCommandIds = this.selectedCommandIds.filter(id => id !== cmdId);
+                console.log('[multi-select] REMOVED from selection', { cmdId, after: [...this.selectedCommandIds] });
             } else {
-                this.selectedCommandIds.push(cmdId);
+                // Add to selection - create new array for reactivity
+                this.selectedCommandIds = [...this.selectedCommandIds, cmdId];
+                console.log('[multi-select] ADDED to selection', { cmdId, after: [...this.selectedCommandIds] });
             }
+            console.log('[multi-select] toggleCommandSelection', {
+                cmdId,
+                before,
+                after: this.selectedCommandIds,
+                selectionMode: this.selectionMode,
+            });
         },
 
         getVisibleCommands() {
@@ -1703,6 +1726,16 @@ function terminalApp() {
 
         isCommandSelected(cmdId) {
             return this.selectedCommandIds.includes(cmdId);
+        },
+
+        shouldShowActionBar() {
+            const value = this.selectionMode && this.selectedCommandIds.length > 0;
+            console.log('[multi-select] shouldShowActionBar()', {
+                selectionMode: this.selectionMode,
+                selectedCount: this.selectedCommandIds.length,
+                result: value,
+            });
+            return value;
         },
 
         // Drag & Drop Handlers
