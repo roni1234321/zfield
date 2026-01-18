@@ -7,6 +7,7 @@ import os
 import sys
 
 from app.api import routes
+from app.api import smp_routes
 from app.api.websocket import websocket_endpoint
 from app.api.port_websocket import port_websocket_endpoint, stop_port_monitor
 
@@ -16,6 +17,7 @@ app = FastAPI(title="Zephyr Device Manager", version=VERSION)
 
 # Include API routes
 app.include_router(routes.router, prefix="/api")
+app.include_router(smp_routes.router, prefix="/api")
 
 # WebSocket endpoint for serial communication
 @app.websocket("/ws")

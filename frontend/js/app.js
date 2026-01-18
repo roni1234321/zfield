@@ -39,6 +39,7 @@ function terminalApp() {
             { id: 'connection', title: 'Connection', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a1 1 0 0 1-1-1v-1a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 15V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V9" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21v-2h-4" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 5a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4z" /></svg>' },
             { id: 'repeat', title: 'Repeat Commands', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' },
             { id: 'scripts', title: 'Shell Scripts', icon: '<span class="codicon codicon-code" style="font-size: 20px;"></span>' },
+            { id: 'smp', title: 'SMP Management', icon: '<span class="codicon codicon-chip" style="font-size: 20px;"></span>' },
             { id: 'settings', title: 'Project Settings', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' },
             { id: 'sequences', title: 'Response Sequences', icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path></svg>' },
             { id: 'counters', title: 'Counters', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" id="mdi-counter" viewBox="0 0 24 24" fill="currentColor"><path d="M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H11V6H4M20,18V6H18.76C19,6.54 18.95,7.07 18.95,7.13C18.88,7.8 18.41,8.5 18.24,8.75L15.91,11.3L19.23,11.28L19.24,12.5L14.04,12.47L14,11.47C14,11.47 17.05,8.24 17.2,7.95C17.34,7.67 17.91,6 16.5,6C15.27,6.05 15.41,7.3 15.41,7.3L13.87,7.31C13.87,7.31 13.88,6.65 14.25,6H13V18H15.58L15.57,17.14L16.54,17.13C16.54,17.13 17.45,16.97 17.46,16.08C17.5,15.08 16.65,15.08 16.5,15.08C16.37,15.08 15.43,15.13 15.43,15.95H13.91C13.91,15.95 13.95,13.89 16.5,13.89C19.1,13.89 18.96,15.91 18.96,15.91C18.96,15.91 19,17.16 17.85,17.63L18.37,18H20M8.92,16H7.42V10.2L5.62,10.76V9.53L8.76,8.41H8.92V16Z" /></svg>' },
@@ -128,6 +129,16 @@ function terminalApp() {
         },
         runningScript: null, // Currently executing script (id)
         scriptExecutionState: {}, // Track execution state per script
+
+        // SMP Management State
+        smpGroup: 0, // Selected SMP group ID
+        smpCommand: '', // Selected SMP command ID
+        smpArgsText: '', // Command arguments as JSON text
+        smpResponse: null, // Last SMP command response
+        firmwareFile: null, // Selected firmware file
+        firmwareFileName: '', // Firmware file name
+        firmwareUploadProgress: 0, // Upload progress (0-100)
+        firmwareImages: [], // List of firmware images on device
 
         // Counter Feature State
         counters: [],
@@ -261,7 +272,18 @@ function terminalApp() {
             if (savedIconOrder) {
                 try {
                     const order = JSON.parse(savedIconOrder);
-                    this.sidebarIcons.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+                    // Merge saved order with current icons - add any new icons not in saved order
+                    const currentIds = this.sidebarIcons.map(i => i.id);
+                    const newIds = currentIds.filter(id => !order.includes(id));
+                    const mergedOrder = [...order, ...newIds];
+                    this.sidebarIcons.sort((a, b) => {
+                        const aIndex = mergedOrder.indexOf(a.id);
+                        const bIndex = mergedOrder.indexOf(b.id);
+                        // If not found in order, put at end
+                        if (aIndex === -1) return 1;
+                        if (bIndex === -1) return -1;
+                        return aIndex - bIndex;
+                    });
                 } catch (e) {
                     console.error("Error parsing icon order", e);
                 }
@@ -2919,6 +2941,162 @@ function terminalApp() {
             setTimeout(() => {
                 this.statusMessage = '';
             }, 5000);
+        },
+
+        // SMP Management Methods
+        async sendSMPCommand() {
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session || !session.connected) {
+                this.showToast('Not connected to device', 'error');
+                return;
+            }
+
+            const group = parseInt(this.smpGroup);
+            const command = parseInt(this.smpCommand);
+
+            if (isNaN(group) || isNaN(command)) {
+                this.showToast('Invalid group or command ID', 'error');
+                return;
+            }
+
+            let args = null;
+            if (this.smpArgsText && this.smpArgsText.trim()) {
+                try {
+                    args = JSON.parse(this.smpArgsText);
+                } catch (e) {
+                    this.showToast('Invalid JSON in arguments', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const requestData = {
+                    group: group,
+                    command: command
+                };
+                if (args) {
+                    requestData.args = args;
+                }
+
+                const response = await fetch(`/api/smp/${encodeURIComponent(session.port)}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.smpResponse = data;
+                    this.showToast('SMP command sent', 'success');
+                } else {
+                    this.showToast(data.detail || 'Failed to send SMP command', 'error');
+                    this.smpResponse = { error: data.detail || 'Unknown error' };
+                }
+            } catch (error) {
+                console.error('SMP command error:', error);
+                this.showToast('Failed to send SMP command: ' + error.message, 'error');
+                this.smpResponse = { error: error.message };
+            }
+        },
+
+        handleFirmwareFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.firmwareFile = file;
+                this.firmwareFileName = file.name;
+                this.firmwareUploadProgress = 0;
+            }
+        },
+
+        async uploadFirmware() {
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session || !session.connected) {
+                this.showToast('Not connected to device', 'error');
+                return;
+            }
+
+            if (!this.firmwareFile) {
+                this.showToast('Please select a firmware file', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', this.firmwareFile);
+
+                this.firmwareUploadProgress = 0;
+
+                const response = await fetch(`/api/smp/${encodeURIComponent(session.port)}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.firmwareUploadProgress = 100;
+                    this.showToast('Firmware uploaded successfully', 'success');
+                } else {
+                    this.showToast(data.detail || 'Failed to upload firmware', 'error');
+                    this.firmwareUploadProgress = 0;
+                }
+            } catch (error) {
+                console.error('Firmware upload error:', error);
+                this.showToast('Failed to upload firmware: ' + error.message, 'error');
+                this.firmwareUploadProgress = 0;
+            }
+        },
+
+        async listFirmwareImages() {
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session || !session.connected) {
+                this.showToast('Not connected to device', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/smp/${encodeURIComponent(session.port)}/images`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    this.firmwareImages = data.images || [];
+                    this.showToast('Firmware images listed', 'success');
+                } else {
+                    this.showToast(data.detail || 'Failed to list images', 'error');
+                }
+            } catch (error) {
+                console.error('List images error:', error);
+                this.showToast('Failed to list images: ' + error.message, 'error');
+            }
+        },
+
+        async resetDevice() {
+            const session = this.sessions.find(s => s.id === this.activeSessionId);
+            if (!session || !session.connected) {
+                this.showToast('Not connected to device', 'error');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to reset the device?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/smp/${encodeURIComponent(session.port)}/reset`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    this.showToast('Device reset command sent', 'success');
+                } else {
+                    this.showToast(data.detail || 'Failed to reset device', 'error');
+                }
+            } catch (error) {
+                console.error('Reset device error:', error);
+                this.showToast('Failed to reset device: ' + error.message, 'error');
+            }
         },
 
         // Resize terminal to fit container

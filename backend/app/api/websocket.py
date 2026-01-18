@@ -2,6 +2,7 @@
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
 from app.api.routes import get_connection_manager
+from app.services.smp_service import get_smp_service
 
 
 async def websocket_endpoint(websocket: WebSocket):
@@ -41,16 +42,35 @@ async def websocket_endpoint(websocket: WebSocket):
         # If no history, send an initial enter to trigger the prompt
         await backend.send(b'\r')
     
+    # Get SMP service for this port
+    smp_service = get_smp_service(port)
+    
     # Queue for received data from serial port
     data_queue = asyncio.Queue(maxsize=1000)
+    
+    def terminal_dump_callback(data: bytes):
+        """Callback to dump SMP bytes as text to terminal."""
+        try:
+            data_queue.put_nowait(data)
+        except asyncio.QueueFull:
+            print(f"WARNING: Data queue full for {port}, dropping data")
+    
+    # Set terminal callback for SMP service
+    smp_service.set_terminal_callback(terminal_dump_callback)
     
     def sync_callback(data: bytes):
         """Callback for serial data - queues data for async processing."""
         try:
-            try:
-                data_queue.put_nowait(data)
-            except asyncio.QueueFull:
-                print(f"WARNING: Data queue full for {port}, dropping data")
+            # Process through SMP service to detect and dump SMP frames
+            # This implements Option A: detect SMP frames by header
+            non_smp_data = smp_service.process_incoming_data(data)
+            
+            # Queue non-SMP data for normal terminal display
+            if non_smp_data:
+                try:
+                    data_queue.put_nowait(non_smp_data)
+                except asyncio.QueueFull:
+                    print(f"WARNING: Data queue full for {port}, dropping data")
         except Exception as e:
             print(f"Error in callback for {port}: {e}")
     

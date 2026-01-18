@@ -12,6 +12,8 @@ dependencies = [
     "pydantic-settings>=2.0.0",  # Compatible with Python 3.10+
     "pyinstaller>=5.0",  # Compatible with Python 3.10+
     "psutil>=5.9.0",
+    "smp",  # SMP protocol serialization/deserialization
+    "python-multipart",  # Required for FastAPI file uploads
 ]
 
 [project.optional-dependencies]
